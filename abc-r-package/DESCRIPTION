@@ -1,0 +1,11 @@
+Package: abc
+Title: Helper functions for the Athero-B-Cell consortium 
+Version: 0.0.0.9000
+Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
+Description: Helper functions for the Athero-B-Cell consortium.
+Depends: R (>= 3.3.1)
+Imports: ggplot2, ggrepel, ggthemes, igraph, httr
+License: TBD 
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.0
