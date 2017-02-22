@@ -14,11 +14,11 @@ def parse_input_filepaths(args):
             abs_path = file
             if not (os.path.isabs(file)):
                 abs_path=cwd+"/"+file
-            print(abs_path)
+            # print(abs_path)
             if os.path.isfile(abs_path):
                 if abs_path.lower().endswith('.txt'):
                     filepaths.append(abs_path)
-                    print(abs_path)
+                    # print(abs_path)
                 else:
                     sys.exit("Not a text file.")
             else:

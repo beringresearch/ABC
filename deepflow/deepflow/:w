@@ -1,5 +1,5 @@
 """
-deepflow for flow cytometry.
+deepflow for flow cytometry
 
 run trains the variational autoencoder on all input text and saves
 the resulting 2D graphs in the folder specified in the output_path.
@@ -9,11 +9,6 @@ with each path being a string.
 output_path is expected to be a string that points to a folder, in
 which the generated images will be saved.
 """
-
-import os.path
-import sys
-import time
-import threading
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -25,9 +20,12 @@ from keras.models import Model
 from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
 
+import os.path
+import sys
+import time
+import threading
 
 def run(text_files, output_path):
-    """Main algo."""
     np.random.seed(123)
 
     listing = text_files
@@ -59,7 +57,7 @@ def run(text_files, output_path):
 
     deepflow = []
 
-    sys.stdout.write("Learning file structure...")
+    print("Learning file structure...")
     spinner = Spinner()
     spinner.start()
     for x in X:
@@ -70,8 +68,8 @@ def run(text_files, output_path):
         yh = encoder.predict(x)
         deepflow.append(yh)
     spinner.stop()
-    sys.stdout.write("FINISHED.")
-    print("\nSaving graphs...")
+
+    print("Saving graphs...")
 
     for k in range(len(deepflow)):
         for marker in range(X[0].shape[1]):
@@ -89,6 +87,9 @@ def run(text_files, output_path):
             plt.savefig(output_path+"_"+os.path.basename(text_files[k]) +
                         "_"+str(marker_names[marker])+".png")
             plt.close(fig)
+
+    # Close session to avoid intermittent exceptions thrown by Tensorflow
+    # K.clear_session()
 
 
 class Spinner:
@@ -111,20 +112,18 @@ class Spinner:
             self.delay = delay
 
     def spinner_task(self):
-        """Task definition."""
+        """Task definition"""
         while self.busy:
             sys.stdout.write(next(self.spinner_generator))
             sys.stdout.flush()
             time.sleep(self.delay)
             sys.stdout.write('\b')
             sys.stdout.flush()
-
+    
     def start(self):
-        """Start spinner."""
         self.busy = True
         threading.Thread(target=self.spinner_task).start()
 
     def stop(self):
-        """Stop spinnner."""
         self.busy = False
         time.sleep(self.delay)
