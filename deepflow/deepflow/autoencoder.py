@@ -26,19 +26,19 @@ from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
 
 
-def run(text_files, output_path):
+def run(markers, text_files, output_path):
     """Main algo."""
     np.random.seed(123)
 
     listing = text_files
     min_max_scaler = MinMaxScaler()
     X = []
-    data = pd.read_table(listing[0])
-    marker_names = data.columns[3:]
+    data = pd.read_table(listing[0], skiprows=1)
+    marker_names = np.genfromtxt(markers, dtype='str')
 
     for filename in listing:
-        data = pd.read_table(filename)
-        tmp = data.values[:, 3:]
+        data = pd.read_table(filename, skiprows=1)
+        tmp = np.arcsinh(data[marker_names].values/5)
         X.append(min_max_scaler.fit_transform(tmp))
 
     input_img = Input(shape=(X[0].shape[1],))
@@ -70,9 +70,10 @@ def run(text_files, output_path):
         yh = encoder.predict(x)
         deepflow.append(yh)
     spinner.stop()
-    sys.stdout.write("FINISHED.")
-    print("\nSaving graphs...")
-
+    sys.stdout.write("FINISHED")
+    sys.stdout.write("\nGenerating images...")
+    spinner = Spinner()
+    spinner.start()
     for k in range(len(deepflow)):
         for marker in range(X[0].shape[1]):
             plt.cla()
@@ -86,10 +87,11 @@ def run(text_files, output_path):
             hb = plt.hexbin(yh[:, 0], yh[:, 1], C=marker_expression,
                             gridsize=50, cmap="jet")
             plt.colorbar(hb)
-            plt.savefig(output_path+"_"+os.path.basename(text_files[k]) +
+            plt.savefig(output_path+os.path.basename(text_files[k]) +
                         "_"+str(marker_names[marker])+".png")
             plt.close(fig)
-
+    spinner.stop()
+    sys.stdout.write("FINISHED\n")
 
 class Spinner:
     """Add a pretty spinner to indicate progress, because why not :) ."""
