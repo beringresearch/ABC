@@ -3,10 +3,10 @@ from setuptools import setup
 setup(
     name="deepflow",
     version="0.1",
-    description="Variational autoencoders for dimensionality reduction.",
-    url="http://github.com/beringresearch/internship/deepflow",
-    author="Bering Limited",
-    author_email="idrozdov@beringresearch.com",
+    description="Deep autoencoders for dimensionality reduction.",
+    url="https://github.com/beringresearch/ABC/tree/master/deepflow",
+    author="Benjamin Szubert, Ignat Drozdov",
+    author_email="bszubert@beringresearch.com, idrozdov@beringresearch.com",
     license="MIT",
     classifiers=[
         # How mature is this project? Common values are
@@ -32,10 +32,10 @@ setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
     ],
-    keywords="keras variational autoencoders deep learning neural networks",
+    keywords="keras autoencoders deep learning neural networks",
     packages=["deepflow"],
     install_requires=[
-        "tensorflow", 
+        "Theano",
         "keras",
         "numpy",
         "pandas",

@@ -2,7 +2,7 @@ README.rst
 setup.py
 deepflow/__init__.py
 deepflow/argparser.py
-deepflow/variational_autoencoder.py
+deepflow/autoencoder.py
 deepflow.egg-info/PKG-INFO
 deepflow.egg-info/SOURCES.txt
 deepflow.egg-info/dependency_links.txt
