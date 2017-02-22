@@ -1,5 +1,0 @@
-Theano
-keras
-numpy
-pandas
-sklearn
