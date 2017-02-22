@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, Imputer
 
 from keras.models import Model
 from keras.layers import Input, Dense
@@ -32,13 +32,15 @@ def run(markers, text_files, output_path):
 
     listing = text_files
     min_max_scaler = MinMaxScaler()
-    X = []
-    data = pd.read_table(listing[0], skiprows=1)
+    impute_nas = Imputer()
+    X = [] 
     marker_names = np.genfromtxt(markers, dtype='str')
 
     for filename in listing:
         data = pd.read_table(filename, skiprows=1)
         tmp = np.arcsinh(data[marker_names].values/5)
+        if np.isnan(tmp).any():
+            tmp = impute_nas.fit_transform(tmp)
         X.append(min_max_scaler.fit_transform(tmp))
 
     input_img = Input(shape=(X[0].shape[1],))
