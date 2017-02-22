@@ -1,0 +1,22 @@
+Metadata-Version: 1.1
+Name: deepflow
+Version: 0.1
+Summary: Variational autoencoders for dimensionality reduction.
+Home-page: http://github.com/beringresearch/internship/deepflow
+Author: Bering Limited
+Author-email: idrozdov@beringresearch.com
+License: MIT
+Description: UNKNOWN
+Keywords: keras variational autoencoders deep learning neural networks
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
