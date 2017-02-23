@@ -1,35 +1,46 @@
 import sys
+import argparse
 import os
 
 """ Parses the command line arguments passed to deepflow. Checks the files for validity and converts the input filepaths from relative to absolute.
     Returns a list of absolute filepaths for the input files, if they are all valid, terminates if any are not. """
 def parse_input_filepaths(args):
     filepaths = []
-    markers = []
+    filelist = []
+    markers = '' 
+    
+    parser = argparse.ArgumentParser(description='DeepFlow module.')
+    parser.add_argument('-m','--markers', help='Marker file name',required=True)
+    parser.add_argument('-f','--files', help='File list', nargs='+', required=True)
 
-    if len(sys.argv) < 3:
-        sys.exit("deepflow is a tool which takes as inputs .fcs files, and saves graphs which display the data in 2-dimensions.\n\nUsage: deepflow [markers.txt] [example1.txt, example2.txt...]")
-    else:
-        markers = sys.argv[1]
-        for file in sys.argv[2:]:
-            cwd = os.getcwd()
-            abs_path = file
-            if not (os.path.isabs(file)):
-                abs_path=cwd+"/"+file
-            # print(abs_path)
+    args = parser.parse_args()
+    
+    markers = args.markers
+    filelist = args.files
+
+    cwd = os.getcwd()
+
+    if not (os.path.isabs(markers)):
+        markers = cwd+"/"+markers 
+
+    for f in filelist: 
+            abs_path = f 
+            if not (os.path.isabs(f)):
+                abs_path=cwd+"/"+f
             if os.path.isfile(abs_path):
                 if abs_path.lower().endswith('.txt'):
-                    filepaths.append(abs_path)
-                    # print(abs_path)
+                    filepaths.append(abs_path) 
                 else:
                     sys.exit("Not a text file.")
             else:
                 sys.exit("File does not exist.")
-        
-        return markers, filepaths
+     
+    return markers, filepaths
 
 """ Creates a folder to store the output of the program, "images", below the current directory, and returns the absolute path to that folder. """
 def create_output_folder():
     cwd = os.getcwd()
-    os.makedirs("images", exist_ok=True)
-    return cwd+"/images/"
+    os.makedirs("deepflow", exist_ok=True)
+    os.makedirs("deepflow/images", exist_ok=True)
+    os.makedirs("deepflow/logs", exist_ok=True)
+    return cwd+"/deepflow/images/", cwd+"/deepflow/logs/"
