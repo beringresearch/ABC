@@ -1,7 +1,7 @@
 """
 deepflow for flow cytometry.
 
-run trains the variational autoencoder on all input text and saves
+run trains a deep autoencoder on all input text and saves
 the resulting 2D graphs in the folder specified in the output_path.
 text_files is expected to be a list of absolute-paths to text files,
 with each path being a string.
@@ -26,7 +26,7 @@ from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
 
 
-def run(markers, text_files, output_path):
+def run(markers, text_files, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
 
@@ -38,10 +38,11 @@ def run(markers, text_files, output_path):
 
     for filename in listing:
         data = pd.read_table(filename, skiprows=1)
-        tmp = np.arcsinh(data[marker_names].values/5)
+        tmp = np.arcsinh(data[marker_names].values/5) 
         if np.isnan(tmp).any():
             tmp = impute_nas.fit_transform(tmp)
-        X.append(min_max_scaler.fit_transform(tmp))
+        tmp = min_max_scaler.fit_transform(tmp) 
+        X.append(tmp) 
 
     input_img = Input(shape=(X[0].shape[1],))
     encoded = Dense(20, activation='tanh')(input_img)
@@ -54,21 +55,23 @@ def run(markers, text_files, output_path):
     decoded = Dense(X[0].shape[1], activation='tanh')(decoded)
 
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
-                                   patience=10, mode='auto')
+                                   patience=50, mode='auto')
     encoder = Model(input=input_img, output=encoded)
     autoencoder = Model(input=input_img, output=decoded)
     autoencoder.compile(optimizer='adam', loss='mse')
 
     deepflow = []
+    fit = []
 
     sys.stdout.write("Learning file structure...")
     spinner = Spinner()
     spinner.start()
     for x in X:
-        autoencoder.fit(x, x, nb_epoch=500,
+        f = autoencoder.fit(x, x, nb_epoch=1000,
                         shuffle=True, validation_data=(x, x),
                         callbacks=[early_stopping],
                         verbose=0)
+        fit.append(f)
         yh = encoder.predict(x)
         deepflow.append(yh)
     spinner.stop()
@@ -77,6 +80,17 @@ def run(markers, text_files, output_path):
     spinner = Spinner()
     spinner.start()
     for k in range(len(deepflow)):
+        fig = plt.figure()
+        fig.suptitle(os.path.basename(text_files[k]), fontsize=14)
+        fig.add_subplot(111)
+        f = fit[k]
+        plt.plot(f.history['loss'])
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.savefig(logs_path +
+                    os.path.basename(text_files[k])+"_loss.png")
+        plt.close(fig)
+
         for marker in range(X[0].shape[1]):
             plt.cla()
             yh = deepflow[k]
@@ -89,8 +103,8 @@ def run(markers, text_files, output_path):
             hb = plt.hexbin(yh[:, 0], yh[:, 1], C=marker_expression,
                             gridsize=50, cmap="jet")
             plt.colorbar(hb)
-            plt.savefig(output_path+os.path.basename(text_files[k]) +
-                        "_"+str(marker_names[marker])+".png")
+            plt.savefig(images_path+os.path.basename(text_files[k]) +
+                        "_"+marker_names[marker]+str()+".png")
             plt.close(fig)
     spinner.stop()
     sys.stdout.write("FINISHED\n")
