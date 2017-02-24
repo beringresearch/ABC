@@ -52,7 +52,7 @@ def run(markers, text_files, images_path, logs_path):
     decoded = Dense(5, activation='tanh')(encoded)
     decoded = Dense(10, activation='tanh')(decoded)
     decoded = Dense(20, activation='tanh')(decoded)
-    decoded = Dense(X[0].shape[1], activation='tanh')(decoded)
+    decoded = Dense(X[0].shape[1], activation='sigmoid')(decoded)
 
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
                                    patience=50, mode='auto')
@@ -110,7 +110,7 @@ def run(markers, text_files, images_path, logs_path):
     sys.stdout.write("FINISHED\n")
 
 class Spinner:
-    """Add a pretty spinner to indicate progress, because why not :) ."""
+    """A pretty spinner to indicate progress, because why not :) ."""
 
     busy = False
     delay = 0.1
