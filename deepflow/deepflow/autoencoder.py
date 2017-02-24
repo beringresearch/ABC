@@ -26,7 +26,7 @@ from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
 
 
-def run(markers, text_files, images_path, logs_path):
+def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
 
@@ -37,7 +37,7 @@ def run(markers, text_files, images_path, logs_path):
     marker_names = np.genfromtxt(markers, dtype='str')
 
     for filename in listing:
-        data = pd.read_table(filename, skiprows=1)
+        data = pd.read_table(filename, skiprows=nskip)
         tmp = np.arcsinh(data[marker_names].values/5) 
         if np.isnan(tmp).any():
             tmp = impute_nas.fit_transform(tmp)

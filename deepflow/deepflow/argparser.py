@@ -10,13 +10,15 @@ def parse_input_filepaths(args):
     markers = '' 
     
     parser = argparse.ArgumentParser(description='DeepFlow module.')
-    parser.add_argument('-m','--markers', help='Marker file name',required=True)
-    parser.add_argument('-f','--files', help='File list', nargs='+', required=True)
+    parser.add_argument('-m', '--markers', help='Marker file name',required=True)
+    parser.add_argument('-f', '--files', help='File list', nargs='+', required=True)
+    parser.add_argument('-n', '--nskip', help='Rows to be skipped', type=int, required=True)
 
     args = parser.parse_args()
     
     markers = args.markers
     filelist = args.files
+    nskip = args.nskip
 
     cwd = os.getcwd()
 
@@ -35,7 +37,7 @@ def parse_input_filepaths(args):
             else:
                 sys.exit("File does not exist.")
      
-    return markers, filepaths
+    return markers, filepaths, nskip
 
 """ Creates a folder to store the output of the program, "images", below the current directory, and returns the absolute path to that folder. """
 def create_output_folder():
