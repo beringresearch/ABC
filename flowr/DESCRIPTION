@@ -1,0 +1,9 @@
+Package: flowr
+Title: R Package for Easy Workflow Management 
+Version: 0.0.0.9000
+Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
+Description: Simple manager of computational workflows in R
+Depends: R (>= 3.3.1)
+License: Apache License, Version 2.0
+Encoding: UTF-8
+LazyData: true
