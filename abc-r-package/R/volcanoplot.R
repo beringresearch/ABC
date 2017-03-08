@@ -3,15 +3,18 @@
 #' @param fc 	numeric vector
 #' @param pval 	numeric vector
 #' @param lbl	character vector
+#' @param ntop	numeric number of top labels to show
 #' @import ggplot2 ggrepel ggthemes
 #' @export
 
-volcanoplot <- function(fc, pval, lbl = NULL){
-
+volcanoplot <- function(fc, pval, lbl = NULL, ntop = length(lbl)){
 	if (!is.null(lbl) & (length(lbl) != length(fc) | length(lbl)!= length(pval)))
 		stop("Label length must match fc and pval vector length.")
+	
+	l <- rep(NA, length(lbl))
+	l[1:ntop] <- lbl[1:ntop]
 
-	df <- data.frame(fc = fc, pval = pval, col = as.factor(ifelse(fc > 0, "up", "down")), lbl = lbl)
+	df <- data.frame(fc = fc, pval = pval, col = as.factor(ifelse(fc > 0, "up", "down")), lbl = l)
 
 	g <- ggplot(df, aes(x = fc, y = -log10(pval), col = col)) +
 		geom_point() +
@@ -19,7 +22,7 @@ volcanoplot <- function(fc, pval, lbl = NULL){
 		xlab("Fold Change") +
 		ylab("-log(p-value)") +
 		scale_colour_manual(values = c("#047c2c","#d5004a"),
-				    labels = c("Up-regulated", "Down-regulated"),
+				    labels = c("Down-regulated", "Up-regulated"),
 				    name = "") +
 		theme_minimal()
 
