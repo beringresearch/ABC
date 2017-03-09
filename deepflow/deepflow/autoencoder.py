@@ -30,7 +30,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
  
-    min_max_scaler = MinMaxScaler()
+    min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
     impute_nas = Imputer()
     X = [] 
     marker_names = np.genfromtxt(markers, dtype='str')
@@ -53,7 +53,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     decoded = Dense(5, activation='tanh')(encoded)
     decoded = Dense(10, activation='tanh')(decoded)
     decoded = Dense(20, activation='tanh')(decoded)
-    decoded = Dense(len(marker_names), activation='sigmoid')(decoded)
+    decoded = Dense(len(marker_names), activation='tanh')(decoded)
 
     # Early stopping criteria
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
@@ -62,7 +62,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     # The main encoder model with the less important autoencoder
     encoder = Model(input=input_img, output=encoded)
     autoencoder = Model(input=input_img, output=decoded)
-    autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+    autoencoder.compile(optimizer='adam', loss='mse')
 
     deepflow = []
     fit = []
