@@ -112,8 +112,8 @@ def run(markers, text_files, nskip, images_path, logs_path):
             fig = plt.figure()
             fig.suptitle(marker_names[marker], fontsize=14)
             fig.add_subplot(111)
-            hb = plt.hexbin(yh[:, 0], yh[:, 1], C=marker_expression,
-                            gridsize=50, cmap="jet")
+            hb = plt.scatter(yh[:, 0], yh[:, 1], c=marker_expression,
+                            marker = '.', edgecolors='none', cmap="jet")
             plt.colorbar(hb)
             plt.savefig(images_path+os.path.basename(text_files[k]) +
                         "_"+marker_names[marker]+str()+".png")
