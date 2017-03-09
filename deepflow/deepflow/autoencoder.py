@@ -45,7 +45,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
         X.append(tmp) 
     
     # Define network architecture
-    input_img = Input(shape=len(marker_names),)
+    input_img = Input(shape=(len(marker_names),))
     encoded = Dense(20, activation='tanh')(input_img)
     encoded = Dense(10, activation='tanh')(encoded)
     encoded = Dense(5, activation='tanh')(encoded)
@@ -62,7 +62,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     # The main encoder model with the less important autoencoder
     encoder = Model(input=input_img, output=encoded)
     autoencoder = Model(input=input_img, output=decoded)
-    autoencoder.compile(optimizer='adam', loss='mse')
+    autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
 
     deepflow = []
     fit = []
