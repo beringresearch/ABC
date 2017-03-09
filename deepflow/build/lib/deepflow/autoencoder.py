@@ -29,23 +29,22 @@ from keras.callbacks import EarlyStopping
 def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
- 
+
+    listing = text_files
     min_max_scaler = MinMaxScaler()
     impute_nas = Imputer()
     X = [] 
     marker_names = np.genfromtxt(markers, dtype='str')
 
-    # Read in data
-    for filename in text_files:
+    for filename in listing:
         data = pd.read_table(filename, skiprows=nskip)
         tmp = np.arcsinh(data[marker_names].values/5) 
         if np.isnan(tmp).any():
             tmp = impute_nas.fit_transform(tmp)
         tmp = min_max_scaler.fit_transform(tmp) 
         X.append(tmp) 
-    
-    # Define network architecture
-    input_img = Input(shape=len(marker_names),)
+
+    input_img = Input(shape=(X[0].shape[1],))
     encoded = Dense(20, activation='tanh')(input_img)
     encoded = Dense(10, activation='tanh')(encoded)
     encoded = Dense(5, activation='tanh')(encoded)
@@ -53,13 +52,10 @@ def run(markers, text_files, nskip, images_path, logs_path):
     decoded = Dense(5, activation='tanh')(encoded)
     decoded = Dense(10, activation='tanh')(decoded)
     decoded = Dense(20, activation='tanh')(decoded)
-    decoded = Dense(len(marker_names), activation='sigmoid')(decoded)
+    decoded = Dense(X[0].shape[1], activation='sigmoid')(decoded)
 
-    # Early stopping criteria
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
                                    patience=50, mode='auto')
-
-    # The main encoder model with the less important autoencoder
     encoder = Model(input=input_img, output=encoded)
     autoencoder = Model(input=input_img, output=decoded)
     autoencoder.compile(optimizer='adam', loss='mse')
@@ -67,8 +63,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     deepflow = []
     fit = []
     model = []
-    
-    # Train the autoencoder on each dataset
+
     sys.stdout.write("Learning file structure...")
     spinner = Spinner()
     spinner.start()
@@ -83,8 +78,6 @@ def run(markers, text_files, nskip, images_path, logs_path):
         model.append(encoder)
     spinner.stop()
     sys.stdout.write("FINISHED")
-
-    # Generate images and save model weights
     sys.stdout.write("\nSaving weights and generating images...")
     spinner = Spinner()
     spinner.start()
