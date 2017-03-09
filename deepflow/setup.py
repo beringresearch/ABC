@@ -39,7 +39,8 @@ setup(
         "keras",
         "numpy",
         "pandas",
-        "sklearn"
+        "sklearn",
+        "h5py"
     ],
     entry_points={
         "console_scripts": [

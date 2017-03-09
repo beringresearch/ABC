@@ -29,22 +29,23 @@ from keras.callbacks import EarlyStopping
 def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
-
-    listing = text_files
-    min_max_scaler = MinMaxScaler()
+ 
+    min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
     impute_nas = Imputer()
     X = [] 
     marker_names = np.genfromtxt(markers, dtype='str')
 
-    for filename in listing:
+    # Read in data
+    for filename in text_files:
         data = pd.read_table(filename, skiprows=nskip)
         tmp = np.arcsinh(data[marker_names].values/5) 
         if np.isnan(tmp).any():
             tmp = impute_nas.fit_transform(tmp)
         tmp = min_max_scaler.fit_transform(tmp) 
         X.append(tmp) 
-
-    input_img = Input(shape=(X[0].shape[1],))
+    
+    # Define network architecture
+    input_img = Input(shape=(len(marker_names),))
     encoded = Dense(20, activation='tanh')(input_img)
     encoded = Dense(10, activation='tanh')(encoded)
     encoded = Dense(5, activation='tanh')(encoded)
@@ -52,17 +53,22 @@ def run(markers, text_files, nskip, images_path, logs_path):
     decoded = Dense(5, activation='tanh')(encoded)
     decoded = Dense(10, activation='tanh')(decoded)
     decoded = Dense(20, activation='tanh')(decoded)
-    decoded = Dense(X[0].shape[1], activation='sigmoid')(decoded)
+    decoded = Dense(len(marker_names), activation='tanh')(decoded)
 
+    # Early stopping criteria
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
                                    patience=50, mode='auto')
+
+    # The main encoder model with the less important autoencoder
     encoder = Model(input=input_img, output=encoded)
     autoencoder = Model(input=input_img, output=decoded)
     autoencoder.compile(optimizer='adam', loss='mse')
 
     deepflow = []
     fit = []
-
+    model = []
+    
+    # Train the autoencoder on each dataset
     sys.stdout.write("Learning file structure...")
     spinner = Spinner()
     spinner.start()
@@ -74,9 +80,12 @@ def run(markers, text_files, nskip, images_path, logs_path):
         fit.append(f)
         yh = encoder.predict(x)
         deepflow.append(yh)
+        model.append(encoder)
     spinner.stop()
     sys.stdout.write("FINISHED")
-    sys.stdout.write("\nGenerating images...")
+
+    # Generate images and save model weights
+    sys.stdout.write("\nSaving weights and generating images...")
     spinner = Spinner()
     spinner.start()
     for k in range(len(deepflow)):
@@ -90,6 +99,9 @@ def run(markers, text_files, nskip, images_path, logs_path):
         plt.savefig(logs_path +
                     os.path.basename(text_files[k])+"_loss.png")
         plt.close(fig)
+        model[k].save_weights(logs_path + 
+                              os.path.basename(text_files[k])+"_weights.h5")
+
 
         for marker in range(X[0].shape[1]):
             plt.cla()
@@ -100,8 +112,8 @@ def run(markers, text_files, nskip, images_path, logs_path):
             fig = plt.figure()
             fig.suptitle(marker_names[marker], fontsize=14)
             fig.add_subplot(111)
-            hb = plt.hexbin(yh[:, 0], yh[:, 1], C=marker_expression,
-                            gridsize=50, cmap="jet")
+            hb = plt.scatter(yh[:, 0], yh[:, 1], c=marker_expression,
+                            marker = '.', edgecolors='none', cmap="jet")
             plt.colorbar(hb)
             plt.savefig(images_path+os.path.basename(text_files[k]) +
                         "_"+marker_names[marker]+str()+".png")
