@@ -43,27 +43,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
             tmp = impute_nas.fit_transform(tmp)
         tmp = min_max_scaler.fit_transform(tmp) 
         X.append(tmp) 
-    
-    # Define network architecture
-    input_img = Input(shape=(len(marker_names),))
-    encoded = Dense(20, activation='tanh')(input_img)
-    encoded = Dense(10, activation='tanh')(encoded)
-    encoded = Dense(5, activation='tanh')(encoded)
-    encoded = Dense(2, activation='tanh')(encoded)
-    decoded = Dense(5, activation='tanh')(encoded)
-    decoded = Dense(10, activation='tanh')(decoded)
-    decoded = Dense(20, activation='tanh')(decoded)
-    decoded = Dense(len(marker_names), activation='tanh')(decoded)
-
-    # Early stopping criteria
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
-                                   patience=50, mode='auto')
-
-    # The main encoder model with the less important autoencoder
-    encoder = Model(input=input_img, output=encoded)
-    autoencoder = Model(input=input_img, output=decoded)
-    autoencoder.compile(optimizer='adam', loss='mse')
-
+     
     deepflow = []
     fit = []
     model = []
@@ -73,6 +53,26 @@ def run(markers, text_files, nskip, images_path, logs_path):
     spinner = Spinner()
     spinner.start()
     for x in X:
+        # Define network architecture
+        input_img = Input(shape=(len(marker_names),))
+        encoded = Dense(20, activation='tanh')(input_img)
+        encoded = Dense(10, activation='tanh')(encoded)
+        encoded = Dense(5, activation='tanh')(encoded)
+        encoded = Dense(2, activation='tanh')(encoded)
+        decoded = Dense(5, activation='tanh')(encoded)
+        decoded = Dense(10, activation='tanh')(decoded)
+        decoded = Dense(20, activation='tanh')(decoded)
+        decoded = Dense(len(marker_names), activation='tanh')(decoded)
+
+        # Early stopping criteria
+        early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
+                                   patience=50, mode='auto')
+
+        # The main encoder model with the less important autoencoder
+        encoder = Model(input=input_img, output=encoded)
+        autoencoder = Model(input=input_img, output=decoded)
+        autoencoder.compile(optimizer='adam', loss='mse')
+
         f = autoencoder.fit(x, x, nb_epoch=1000,
                         shuffle=True, validation_data=(x, x),
                         callbacks=[early_stopping],
