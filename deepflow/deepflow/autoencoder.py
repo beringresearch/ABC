@@ -70,8 +70,8 @@ def run(markers, text_files, nskip, images_path, logs_path):
                                    patience=50, mode='auto')
 
         # The main encoder model with the less important autoencoder
-        encoder = Model(input=input_img, output=encoded)
-        autoencoder = Model(input=input_img, output=decoded)
+        encoder = Model(inputs=input_img, outputs=encoded)
+        autoencoder = Model(inputs=input_img, outputs=decoded)
         autoencoder.compile(optimizer='adam', loss='mse')
 
         f = autoencoder.fit(x, x, epochs=1000,
