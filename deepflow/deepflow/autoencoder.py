@@ -30,7 +30,8 @@ def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
  
-    min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
+    min_max_scaler = MinMaxScaler(feature_range=(-1, 1)) 
+
     impute_nas = Imputer()
     X = [] 
     marker_names = np.genfromtxt(markers, dtype='str')
@@ -73,7 +74,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
         autoencoder = Model(input=input_img, output=decoded)
         autoencoder.compile(optimizer='adam', loss='mse')
 
-        f = autoencoder.fit(x, x, nb_epoch=1000,
+        f = autoencoder.fit(x, x, epochs=1000,
                         shuffle=True, validation_data=(x, x),
                         callbacks=[early_stopping],
                         verbose=0)
