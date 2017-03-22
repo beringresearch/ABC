@@ -1,0 +1,6 @@
+Theano
+keras
+numpy
+pandas
+sklearn
+h5py

@@ -7,6 +7,9 @@
 
 flowr <- function(config){
 	params <- yaml::yaml.load_file(config)
+	
+	imports <- params$imports
 
+	output <- lapply(imports, flowr_import)
 
 }
