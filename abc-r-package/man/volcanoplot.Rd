@@ -4,7 +4,7 @@
 \alias{volcanoplot}
 \title{Draw a labeled volcano plot}
 \usage{
-volcanoplot(fc, pval, lbl = NULL)
+volcanoplot(fc, pval, lbl = NULL, ntop = length(lbl))
 }
 \arguments{
 \item{fc}{numeric vector}
@@ -12,6 +12,8 @@ volcanoplot(fc, pval, lbl = NULL)
 \item{pval}{numeric vector}
 
 \item{lbl}{character vector}
+
+\item{ntop}{numeric number of top labels to show}
 }
 \description{
 Draw a labeled volcano plot

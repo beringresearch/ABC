@@ -1,0 +1,11 @@
+R: 3.3.1
+Repository:
+        CRAN:
+                Packages:
+                        ggplot2: 2.2.0
+                        data.table: 1.10.2
+        Bioconductor:
+                Packages:
+                        - limma
+                        - affy
+
