@@ -4,12 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>DeepflowJ</artifactId>
-
-    <parent>
-        <groupId>org.deeplearning4j</groupId>
-        <artifactId>deeplearning4j-examples-parent</artifactId>
-        <version>0.7-SNAPSHOT</version>
-    </parent>
+    <groupId>com.bering</groupId>
+    <version>0.7-SNAPSHOT</version>
 
     <name>DeepflowJ</name>
     <description>Examples of training different data sets</description>
