@@ -1,0 +1,63 @@
+---
+title: "`r title`"
+author: "`r author`"
+output:
+ tufte::tufte_handout: 
+  toc: true
+---
+
+
+```{r, include=FALSE}
+library(ggplot2)
+library(ggthemes)
+
+# Bering colorscheme
+bering.colours <- c("#56B4E9", "#D55E00", "#999999", "#009E73", "#F0E442", "#0072B2", "#E69F00", "#CC79A7")
+
+```
+
+# Results
+
+Overall, n = `r ncol(raw)` expression arrays containing n = `r nrow(raw)` features were included in the analysis. Robust Multiarray Averaging (RMA) algorithm was used to background correct and normalise all arrays using Affymetrix core level summarisation. Normalised data was reduced to n = `r nrow(data)` features. Subsequently, all features were mapped to Entrez Gene Identifiers (IDs) and features with missing annotation were removed, yielding a final dataset consisting of n = `r nrow(eset)` annotated transcripts.
+
+## Microarray quality control
+
+Boxplots of cumulative signal intensities across all samples (Figure 1) indicate that there are no outlying microarray samples given that there is no significant variability in average signal intensities across all samples.
+
+```{r ma-qcboxplot, fig.cap="Boxplots visualising signal intensity distributions across all samples", fig.width=20, fig.height=10, echo=FALSE}
+df <- reshape2::melt(exprs(eset))
+ggplot(df, aes(x=Var2, y=value, fill=Var2)) + geom_boxplot() +
+	xlab("Sample") + ylab("Signal intensity") +
+	theme(axis.ticks=element_blank(),
+	      axis.text.x=element_blank(),
+	      legend.title=element_blank())	
+```
+
+Principal Component Analysis (PCA) was used to visualise genome-wide similarities and differences between patient samples (Figure 2).
+
+```{r ma-pcaplot, fig.cap="Principal Component Analysis (PCA) scatter plot. Smaller distances between points reflect increased similarity between biological samples on the genome-wide expression level.", fig.width=8, fig.height=4, echo=FALSE}
+
+df <- data.frame(PC1=pc$rotation[,1], PC2=pc$rotation[,2], class=pData(eset)$Description)
+gg <- merge(df, aggregate(cbind(mean.x=PC1, mean.y=PC2) ~ class, df, mean), by="class")
+ggplot(gg, aes(x=PC1, y=PC2, colour=factor(class))) + 
+	geom_point(size=2) +
+	geom_point(aes(x=mean.x, y=mean.y), size=5) +
+	geom_segment(aes(x=mean.x, y=mean.y, xend=PC1, yend=PC2)) +
+	scale_color_manual(values=bering.colours) +
+	scale_fill_manual(values=bering.colours) +
+	xlab(paste0("PC1 (", round(variance[1] * 100), "%)")) +
+	ylab(paste0("PC2 (", round(variance[2] * 100), "%")) +
+	theme(legend.title=element_blank())
+```
+
+## Differential Expression Analysis
+
+Differential expression of n = `r nrow(eset)` annotated transcripts was assessed using Empirical Bayes Statistics for Differential Expression. All transcripts with adjuster p-values < 0.05 were considered significant. There were n = `r sum(top.genes$logFC<0)` down-regulated and n = `r sum(top.genes$logFC>0)` up-regulated genes (Figure 3).
+
+```{r ma-volcanoplot, fig.cap="Volcano plot of all differentially expressed genes (adjusted p-value < 0.05). Top 10 differentially expressed genes are labeled.", fig.width=6, fig.height=6, echo = FALSE, warning=FALSE, message=FALSE}
+
+bering.abc::volcanoplot(fc=top.genes$logFC,
+			pval=top.genes$adj.P.Val,
+			lbl=as.character(top.genes$SYMBOL),
+			ntop=10)
+```
