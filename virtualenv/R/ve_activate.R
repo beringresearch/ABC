@@ -9,6 +9,11 @@ ve_activate <- function(name){
 	ve_dir <- file.path(HOME, ".renvironments")
 	env_dir <- file.path(ve_dir, name)
 	
-	message(paste0("Setting current R environment to ", name))
- 	out <- eval(Sys.setenv(R_ENVIR = env_dir), globalenv())	
+	if (file.exists(env_dir)){	
+		message(paste0("Setting current R environment to ", name))	
+ 		out <- eval(Sys.setenv(R_ENVIR=env_dir), globalenv())
+		assign(".lib.loc", env_dir, envir = environment(.libPaths))
+	}else{
+		stop(paste0("Environment", name, " does not exist. Run ve_new(", name, ") to create it."))
+	}	
 }
