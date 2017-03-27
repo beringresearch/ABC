@@ -1,6 +1,6 @@
 Package: bering.abc
 Title: Helper functions for the Athero-B-Cell consortium 
-Version: 0.0.1.0
+Version: 0.0.1.1
 Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
 Description: Helper functions for the Athero-B-Cell consortium.
 Depends: R (>= 3.3.1)
