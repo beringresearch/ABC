@@ -1,0 +1,15 @@
+title: Gene Expression Profiling in SMC Samples
+author: Ignat Drozdov, MD PhD
+affiliation: Bering Limited
+url: beringresearch.com
+email: idrozdov@beringresearch.com
+datapath: ~/Documents/Bering/Projects/AtheroBCell/Oxford/Leena_SMC_microarray/data/cel
+pdatapath: ~/Documents/Bering/Projects/AtheroBCell/Oxford/Leena_SMC_microarray/data/cel/pData.csv
+outdir: ~/Documents/Bering/Projects/AtheroBCell/Oxford/Leena_SMC_microarray/report
+array:
+        plaform: affy
+        resolution: core
+        annotation_lib: huex10sttranscriptcluster.db
+        annotation_obj: huex10sttranscriptcluster
+comparisons:
+        - Aortic.SMC.TNF-Aortic.SMC.SF
