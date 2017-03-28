@@ -1,10 +1,12 @@
 #' Initialize a virtual environment
 #'
-#' @param name			character name of the new environment
-#' @param dependancies		path the yaml config file
+#' @param config_path		path the yaml config file
 #' @export
 
-ve_new <- function(name, dependencies){
+ve_new <- function(config_path){
+	
+	config <- yaml::yaml.load_file(config_path)
+	name <- config$name
 
 	HOME <- Sys.getenv("HOME")
 	ve_dir <- file.path(HOME, ".renvironments")
@@ -19,21 +21,22 @@ ve_new <- function(name, dependencies){
 	       )
 
 	# Copy dependencies yaml to environment directory for future use
-	out <- file.copy(from=dependencies, to=env_dir)
-	
-	# Generate a list of dependencies from yaml
-	deps <- yaml.load_file(dependencies)
+	out <- file.copy(from=config_path, to=env_dir)
 	
 	# Cycle through repositories, installing specific packages
-	repositories <- names(deps$Repository)
+	repositories <- names(config$Repository)
 
 	for (n in repositories){
 		if (n=="CRAN"){
-			task <- deps$Repository[[n]]$Packages
+
+			task <- config$Repository[[n]]$Packages
 			pkg <- names(task)
 			version <- as.vector(unlist(task))
-		       	url <- get_package_url(pkg, version)	
+		       	url <- get_package_url(pkg, version)
 			install.packages(url, repos=NULL, type="source", lib=env_dir)
+			
+			deps <- unique(unlist(sapply(file.path(env_dir, pkg), get_package_deps)))
+			install.packages(deps, lib=env_dir)			
 		}
 	}
 
@@ -44,3 +47,12 @@ get_package_url <- function(pkg, version){
 			     pkg,"/", pkg,"_", version, ".tar.gz")
 	return(packageurl)
 }
+
+get_package_deps <- function(path) {
+	dcf <- read.dcf(file.path(path, "DESCRIPTION"))
+	jj <- intersect(c("Depends", "Imports"), colnames(dcf))
+        val <- unlist(strsplit(dcf[, jj], ","), use.names=FALSE)
+        val <- gsub("\\s.*", "", trimws(val))
+	val[val != "R"]
+}
+
