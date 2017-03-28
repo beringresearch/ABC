@@ -1,13 +1,13 @@
 Package: virtualenv
 Title: reproducible environment manager for R 
-Version: 0.0.0.9000
+Version: 0.0.1.0
 Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
 Description: R package for reproducible management of stand-alone R environments.
-	     Designed to kepp all project dependencies in one place, facilitating
+	     Designed to keep all project dependencies in one place, facilitating
 	     sharing and version control.
 Depends: R (>= 3.3.1)
 Imports: yaml
-License: What license is it under?
+License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
