@@ -19,25 +19,44 @@ ve_new <- function(config_path){
 	       stop(paste0("Environment ", name, " already exists. Run ve_delete to delete it.")),
 	       dir.create(file.path(env_dir), showWarnings = FALSE)
 	       )
-
-	# Copy dependencies yaml to environment directory for future use
-	#out <- file.copy(from=config_path, to=env_dir)
 	
-	# Cycle through repositories, installing specific packages
-	repositories <- names(config$Repository)
+	# Install CRAN repositories
+	cran <- match("CRAN", names(config))
 
-	for (n in repositories){
-		if (n=="CRAN"){
-			task <- config$Repository[[n]]$Packages
-			pkg <- names(task)
-			version <- as.vector(unlist(task))
-		       	url <- get_package_url(pkg, version)
-			install.packages(url, repos=NULL, type="source", lib=env_dir)
-			
-			deps <- unique(unlist(sapply(file.path(env_dir, pkg), get_package_deps)))
-			install.packages(deps, lib=env_dir)			
+	if(!is.na(cran)){
+		pkgs <- names(config[[cran]])
+		version <- as.vector(unlist(config[[cran]]))
+		
+		for (n in 1:length(pkgs)){
+			install_package_version(pkgs[n], version=version[n], lib=env_dir)
 		}
+
+		# Install dependencies	
+		deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
+		# Remove base packages from dependency list
+		deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
+		install.packages(deps, lib=env_dir)			
+	}else{
+		stop("virtualenv does not support repositories other than CRAN for the time being.")
 	}
+}
+
+# Install a specific version of the package.
+install_package_version <- function(pkg, version, repos = getOption("repos"), type = getOption("pkgType"),
+			...){
+	contriburl <- contrib.url(repos, type)
+	available <- available.packages(contriburl)
+
+	if (pkg %in% row.names(available)) {
+		current.version <- available[pkg, 'Version']
+		if (is.null(version) || version == current.version) {
+			return(install.packages(pkg, repos = repos, ...))
+	        }else{
+			url <- get_package_url(pkg, version)
+			install.packages(url, repos=NULL, type="source", ...)
+
+		}
+	}	    	
 }
 
 get_package_url <- function(pkg, version){
@@ -45,6 +64,7 @@ get_package_url <- function(pkg, version){
 			     pkg,"/", pkg,"_", version, ".tar.gz")
 	return(packageurl)
 }
+
 
 get_package_deps <- function(path) {
 	dcf <- read.dcf(file.path(path, "DESCRIPTION"))
