@@ -54,7 +54,7 @@ ggplot(gg, aes(x=PC1, y=PC2, colour=factor(class))) +
 
 Differential expression of n = `r nrow(eset)` annotated transcripts was assessed using Empirical Bayes Statistics for Differential Expression. All transcripts with adjuster p-values < 0.05 were considered significant. There were n = `r sum(top.genes$logFC<0)` down-regulated and n = `r sum(top.genes$logFC>0)` up-regulated genes (Figure 3).
 
-```{r ma-volcanoplot, fig.cap="Volcano plot of all differentially expressed genes (adjusted p-value < 0.05). Top 10 differentially expressed genes are labeled.", fig.width=6, fig.height=6, echo = FALSE, warning=FALSE, message=FALSE}
+```{r ma-volcanoplot, fig.cap="Volcano plot of all differentially expressed genes (adjusted p-value < 0.05). Top 10 differentially expressed genes are labeled.", fig.width=6, fig.height=6, fig.width=5, echo = FALSE, warning=FALSE, message=FALSE}
 
 bering.abc::volcanoplot(fc=top.genes$logFC,
 			pval=top.genes$adj.P.Val,
