@@ -4,12 +4,10 @@
 \alias{ve_new}
 \title{Initialize a virtual environment}
 \usage{
-ve_new(name, dependencies)
+ve_new(config_path)
 }
 \arguments{
-\item{name}{character name of the new environment}
-
-\item{dependancies}{path the yaml config file}
+\item{config_path}{path the yaml config file}
 }
 \description{
 Initialize a virtual environment
