@@ -13,18 +13,21 @@ ve_list <- function(){
 	envs <- dir(ve_dir, full.names = FALSE)
 
 	if (length(envs) > 0){
-		res <- data.frame(Environment=NA, Size=NA, Owner=NA, Libraries=NA)
+		res <- data.frame(Active=NA,Environment=NA, Size=NA, Owner=NA, Libraries=NA)
 
 		for(n in 1:length(envs)){
 			info <- file.info(file.path(ve_dir, envs[n]))
 			res[n, "Environment"] <- envs[n]
 			res[n, "Size"] <- info$size	
 			res[n, "Owner"] <- info$uname
-			res[n, "Libraries"] <- paste0(strtrim(
-						      paste0(environment_libs(envs[n]),
-							     collapse=", "),
-					    		25), "...")
-		}	
+			res[n, "Libraries"] <- length(environment_libs(envs[n]))
+		}
+		res[,"Active"] <- ""
+		active_env <- unlist(strsplit(.libPaths(), paste0(ve_dir, "/")))[2]
+		ix <- match(active_env, res[,"Environment"])
+		if (!is.na(ix))
+			res[ix, "Active"] <- "*"
+			
 		return(res)	
 	}else{
 		message("No R environments. Run ve_new() to create one.")
