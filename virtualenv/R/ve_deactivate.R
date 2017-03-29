@@ -16,4 +16,5 @@ ve_deactivate <- function(){
 	}
 
 	.libPaths(Sys.getenv("R_LIBS_USER"))
+	require(virtualenv)
 }
