@@ -1,46 +1,61 @@
 #' Initialize a virtual environment
 #'
+#' @param name			character string specifying the name of a new environment
 #' @param config_path		path the yaml config file
 #' @export
 
-ve_new <- function(config_path){
-	
-	config <- yaml::yaml.load_file(config_path)
-	name <- config$name
+ve_new <- function(name=NULL, config_path=NULL){
+	if (!is.null(name)){
+		HOME <- Sys.getenv("HOME")
+		ve_dir <- file.path(HOME, ".renvironments")
+		env_dir <- file.path(ve_dir, name)
 
-	HOME <- Sys.getenv("HOME")
-	ve_dir <- file.path(HOME, ".renvironments")
-	env_dir <- file.path(ve_dir, name)
+		# Create home directory if it doesn't exist
+		if(!dir.exists(ve_dir)) dir.create(ve_dir)
 
-	# Create home directory if it doesn't exist
-	if(!dir.exists(ve_dir)) dir.create(ve_dir)
-
-	out <- ifelse(dir.exists(env_dir),
-	       stop(paste0("Environment ", name, " already exists. Run ve_delete to delete it.")),
-	       dir.create(file.path(env_dir), showWarnings = FALSE)
-	       )
-	
-	# Install CRAN repositories
-	cran <- match("CRAN", names(config))
-
-	if(!is.na(cran)){
-		pkgs <- names(config[[cran]])
-		version <- as.vector(unlist(config[[cran]]))
-		
-		for (n in 1:length(pkgs)){
-			install_package_version(pkgs[n], version=version[n], lib=env_dir)
-		}
-
-		# Install dependencies	
-		deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
-		# Remove base packages from dependency list
-		deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
-		install.packages(deps, lib=env_dir)			
-	}else{
-		stop("virtualenv does not support repositories other than CRAN for the time being.")
+		out <- ifelse(dir.exists(env_dir),
+	       	stop(paste0("Environment ", name, " already exists. Run ve_delete to delete it.")),
+	       	dir.create(file.path(env_dir), showWarnings = FALSE)
+	       	)	
 	}
-}
 
+	if (!is.null(config_path)){
+		config <- yaml::yaml.load_file(config_path)
+		name <- config$name
+
+		HOME <- Sys.getenv("HOME")
+		ve_dir <- file.path(HOME, ".renvironments")
+		env_dir <- file.path(ve_dir, name)
+
+		# Create home directory if it doesn't exist
+		if(!dir.exists(ve_dir)) dir.create(ve_dir)
+
+		out <- ifelse(dir.exists(env_dir),
+	       	stop(paste0("Environment ", name, " already exists. Run ve_delete to delete it.")),
+	       	dir.create(file.path(env_dir), showWarnings = FALSE)
+	       	)
+	
+		# Install CRAN repositories
+		cran <- match("CRAN", names(config))
+
+		if(!is.na(cran)){
+			pkgs <- names(config[[cran]])
+			version <- as.vector(unlist(config[[cran]]))
+		
+			for (n in 1:length(pkgs)){
+				install_package_version(pkgs[n], version=version[n], lib=env_dir)
+			}
+
+			# Install dependencies	
+			deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
+			# Remove base packages from dependency list
+			deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
+			install.packages(deps, lib=env_dir)			
+		}else{
+			stop("virtualenv does not support repositories other than CRAN for the time being.")
+		}
+	}	
+}
 # Install a specific version of the package.
 install_package_version <- function(pkg, version, repos = getOption("repos"), type = getOption("pkgType"),
 			...){
