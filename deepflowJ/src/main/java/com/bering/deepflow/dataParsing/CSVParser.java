@@ -18,7 +18,22 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
-
+/**
+ * Created by benjamin on 23/03/17.
+ *
+ * Responsible for parsing a CSV file to extract a DataSet object, it applies transformations and normalizations to the data-set.
+ * These include:
+ *  - applying a mask
+ *  - applying a arcsinh(x/covariant) transform, where the covariant is 5.
+ *  - applying a MinMaxScaler to bring all values of the data-set within the range (0,1).
+ * Upon completion, it saves the processed data-set in binary with the DataSet.save() method.
+ * It also saves a list of features for the data-set.
+ *
+ * It takes as arguments:
+ * 1) The filepath to the .csv file containing the data
+ * 2) The number of lines to skip in that file to reach the first row of that data
+ * 3) (Optional) A list of features for the data-set, those not present will be filtered out
+ */
 public class CSVParser {
 
     private static Logger log = LoggerFactory.getLogger(CSVParser.class);
@@ -51,6 +66,8 @@ public class CSVParser {
             System.out.println(e.getMessage());
         }
     }
+
+    public CSVParser(){}
 
     void processData(String filepath, int numLinesToSkip, boolean[] mask) throws Exception {
 
@@ -104,7 +121,7 @@ public class CSVParser {
 
     }
 
-    String[] getFeatures(String filepath, int numLinesToSkip, String delimiter) throws IOException, InterruptedException{
+    public String[] getFeatures(String filepath, int numLinesToSkip, String delimiter) throws IOException, InterruptedException{
         // Look at first lines for meta-data, including Markers.
         LineRecordReader lineRecordReader = new LineRecordReader();
         lineRecordReader.initialize(new FileSplit(new File(filepath)));

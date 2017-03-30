@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Created by benjamin on 14/03/17.
+ *  A set of Transformations that can be applied to a DataSet object.
  */
 class Transforms {
 
@@ -35,9 +36,7 @@ class Transforms {
             public void run() {
                 while (index < array.length()) {
                     double element = array.getDouble(index);
-                    BigDecimal bigDecimal = BigDecimal.valueOf(element);
-                    bigDecimal = BigDecimalMath.asinh(bigDecimal);
-                    element = bigDecimal.doubleValue();
+                    element = Math.log(element + Math.sqrt(element * element + 1.0)); // Apply arcsinh transform
                     array.putScalar(index, element);
                     index += batchSize;
                 }
