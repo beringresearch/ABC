@@ -32,13 +32,21 @@ CRAN:
 ```
 
 ## Setting up a new environment
-To initiate this environment run:
+To initiate an environment from a configuration file, run:
 
 ```r
-ve_new("test.yaml")
+ve_new(config_path="test.yaml")
+```
+
+Otherwise, a new environment can be created just by supplying its name:
+
+```r
+ve_new("test")
 ```
 
 All environment files are loaced in ~/.renvironment directory in Unix-like systems. Note that in addition to the two specified packages, __virtualenv__ also downloads and installs their dependencies.
+
+After an environment is created and its requirements are satisfied, R automatically populates the new environment with base packages from the current R version.
 
 To view existing environments enter:
 
@@ -66,7 +74,7 @@ ve_export("copy_of_my_environment")
 
 ```r
 ve_deactivate()
-ve_delete("test")
+ve_remove("test")
 ```
 
 Note that upon deactivation, all attached packages will be unloaded and default R environment restored.
