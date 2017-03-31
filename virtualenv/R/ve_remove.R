@@ -3,7 +3,7 @@
 #' @param names	character vector name of the environment to be deleted.
 #' @export
 
-ve_delete <- function(names) {
+ve_remove <- function(names) {
 
 	HOME <- Sys.getenv("HOME")
 	ve_dir <- file.path(HOME, ".renvironments")

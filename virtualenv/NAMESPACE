@@ -2,7 +2,9 @@
 
 export(ve_activate)
 export(ve_deactivate)
-export(ve_delete)
 export(ve_export)
 export(ve_list)
 export(ve_new)
+export(ve_remove)
+importFrom(yaml,as.yaml)
+importFrom(yaml,yaml.load_file)

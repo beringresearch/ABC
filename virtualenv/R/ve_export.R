@@ -4,7 +4,7 @@
 #' The file can then be used to create new virtualenv settings.
 #'
 #' @param name character name of the environment to be generated
-#'
+#' @importFrom yaml as.yaml
 #' @export
 
 ve_export <- function(name){
@@ -19,7 +19,7 @@ ve_export <- function(name){
 	names(pkg) <- installed_packages[,"Package"]	
 	config$CRAN <- as.list(pkg)	
 
-	yaml <- yaml::as.yaml(config)
+	yaml <- as.yaml(config)
 	
 	fileConn<-file(paste0(name, ".yaml"))
 	writeLines(yaml, fileConn)

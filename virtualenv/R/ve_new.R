@@ -2,9 +2,11 @@
 #'
 #' @param name			character string specifying the name of a new environment
 #' @param config_path		path the yaml config file
+#' @importFrom yaml yaml.load_file
 #' @export
 
 ve_new <- function(name=NULL, config_path=NULL){
+
 	if (!is.null(name)){
 		HOME <- Sys.getenv("HOME")
 		ve_dir <- file.path(HOME, ".renvironments")
@@ -20,7 +22,7 @@ ve_new <- function(name=NULL, config_path=NULL){
 	}
 
 	if (!is.null(config_path)){
-		config <- yaml::yaml.load_file(config_path)
+		config <- yaml.load_file(config_path)
 		name <- config$name
 
 		HOME <- Sys.getenv("HOME")
@@ -41,20 +43,35 @@ ve_new <- function(name=NULL, config_path=NULL){
 		if(!is.na(cran)){
 			pkgs <- names(config[[cran]])
 			version <- as.vector(unlist(config[[cran]]))
-		
-			for (n in 1:length(pkgs)){
-				install_package_version(pkgs[n], version=version[n], lib=env_dir)
-			}
 
-			# Install dependencies	
-			deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
-			# Remove base packages from dependency list
-			deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
-			install.packages(deps, lib=env_dir)			
+			# Remove base packages
+			base <- pkgs %in% rownames(installed.packages(priority="base"))
+			pkgs <- pkgs[!base]
+			version <- version[!base]
+
+			if (length(pkgs) > 0){
+				for (n in 1:length(pkgs)){
+				install_package_version(pkgs[n], version=version[n], lib=env_dir)
+				}
+
+				# Install dependencies	
+				deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
+				# Remove base packages from dependency list
+				deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
+				if (length(deps)>0)
+					install.packages(deps, lib=env_dir)
+			}			
 		}else{
 			stop("virtualenv does not support repositories other than CRAN for the time being.")
 		}
-	}	
+	}
+
+	# Migrate base packages to the new virtualenv directory
+	base <- installed.packages(priority="base")
+
+	out <- file.copy(from=file.path(base[,"LibPath"], rownames(base)),
+		  to=env_dir, recursive=TRUE)
+	
 }
 # Install a specific version of the package.
 install_package_version <- function(pkg, version, repos = getOption("repos"), type = getOption("pkgType"),

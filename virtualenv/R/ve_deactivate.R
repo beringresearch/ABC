@@ -7,14 +7,19 @@
 
 ve_deactivate <- function(){
 
-	session <- sessionInfo()
-	loadedPkgs <- c(names(session$otherPkgs))
-	
-	if (!is.null(loadedPkgs)){
-		loadedPkgs <- paste("package", loadedPkgs, sep=":")
-		lapply(loadedPkgs, detach, unload=TRUE, character.only=TRUE)
-	}
+	suppressMessages(
+			 repeat{
+
+				 pkgs <- setdiff(loadedNamespaces(), c("stats","graphics","grDevices", "utils", "datasets", "methods", "base"))
+
+				 if (length(pkgs) == 0) break
+				 for (pkg in pkgs) {
+					 try(unloadNamespace(pkg), silent = TRUE)
+				 }
+			 }
+			 )
 
 	.libPaths(Sys.getenv("R_LIBS_USER"))
-	require(virtualenv)
+	require(virtualenv, quietly=TRUE)
+	
 }
