@@ -1,6 +1,0 @@
-title: Differential Pathway Analysis
-author: Ignat Drozdov
-date: March 7, 2016
-imports:
- - SPIA
- - pathview
