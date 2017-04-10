@@ -20,9 +20,9 @@ import pandas as pd
 import numpy as np
 
 from sklearn.preprocessing import MinMaxScaler, Imputer
-from sklearn.manifold import TSNE
 
-from keras import regularizers
+
+#from keras import regularizers
 from keras.models import Model
 from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
@@ -32,7 +32,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
     np.random.seed(123)
  
-    min_max_scaler = MinMaxScaler(feature_range=(-1, 1)) 
+    min_max_scaler = MinMaxScaler(feature_range=(-0.5, 0.5)) 
 
     impute_nas = Imputer()
     X = [] 
@@ -60,8 +60,8 @@ def run(markers, text_files, nskip, images_path, logs_path):
         input_img = Input(shape=(len(marker_names),))
         encoded = Dense(20, activation='tanh')(input_img)
         encoded = Dense(10, activation='tanh')(encoded)
-        encoded = Dense(4, activation='tanh', activity_regularizer=regularizers.l1(10e-5))(encoded)
-       # encoded = Dense(2, activation='tanh', activity_regularizer=regularizers.l1(10e-5))(encoded)
+        encoded = Dense(4, activation='tanh')(encoded)
+        encoded = Dense(2, activation='linear')(encoded)
         decoded = Dense(4, activation='tanh')(encoded)
         decoded = Dense(10, activation='tanh')(decoded) 
         decoded = Dense(20, activation='tanh')(decoded)
@@ -81,10 +81,8 @@ def run(markers, text_files, nskip, images_path, logs_path):
                         callbacks=[early_stopping],
                         verbose=0)
         fit.append(f)
-        yh = encoder.predict(x)
-        xy = TSNE().fit_transform(yh)
-        deepflow.append(xy)
-        #deepflow.append(yh)
+        yh = encoder.predict(x) 
+        deepflow.append(yh)
         model.append(encoder)
     spinner.stop()
     sys.stdout.write("FINISHED")
