@@ -26,9 +26,15 @@ Each environment is described using YAML format. Here's an example of environmen
 ```yaml
 name: test
 R: R version 3.3.1 (2016-06-21)
-CRAN:
- ggplot2: 2.2.1
- data.table: 1.10.2
+resources:
+ - name: Bioconductor
+   url: https://bioconductor.org/packages/release/bioc/ 
+   packages:
+    limma:
+ - name: CRAN
+   url: https://cran.r-project.org/
+   packages:
+    data.table: 1.10.4
 ```
 
 ## Setting up a new environment

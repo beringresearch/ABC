@@ -1,6 +1,6 @@
 Package: virtualenv
 Title: reproducible environment manager for R 
-Version: 0.0.1.0
+Version: 0.0.1.1
 Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
 Description: R package for reproducible management of stand-alone R environments.
 	     Designed to keep all project dependencies in one place, facilitating

@@ -36,6 +36,7 @@ setup(
     packages=["deepflow"],
     install_requires=[
         "Theano",
+        "tensorflow",
         "keras",
         "numpy",
         "pandas",

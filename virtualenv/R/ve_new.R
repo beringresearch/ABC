@@ -16,11 +16,12 @@ ve_new <- function(name=NULL, config_path=NULL){
 		if(!dir.exists(ve_dir)) dir.create(ve_dir)
 
 		out <- ifelse(dir.exists(env_dir),
-	       	stop(paste0("Environment ", name, " already exists. Run ve_delete to delete it.")),
+	       	stop(paste0("Environment ", name, " already exists. Run ve_remove() to delete it.")),
 	       	dir.create(file.path(env_dir), showWarnings = FALSE)
 	       	)	
 	}
-
+	
+	# Create environment from YAML file
 	if (!is.null(config_path)){
 		config <- yaml.load_file(config_path)
 		name <- config$name
@@ -33,37 +34,33 @@ ve_new <- function(name=NULL, config_path=NULL){
 		if(!dir.exists(ve_dir)) dir.create(ve_dir)
 
 		out <- ifelse(dir.exists(env_dir),
-	       	stop(paste0("Environment ", name, " already exists. Run ve_delete to delete it.")),
+	       	stop(paste0("Environment ", name, " already exists. Run ve_remove() to delete it.")),
 	       	dir.create(file.path(env_dir), showWarnings = FALSE)
 	       	)
 	
-		# Install CRAN repositories
-		cran <- match("CRAN", names(config))
+		# Interate through all listed resources
+		resources <- config$resources
 
-		if(!is.na(cran)){
-			pkgs <- names(config[[cran]])
-			version <- as.vector(unlist(config[[cran]]))
-
-			# Remove base packages
-			base <- pkgs %in% rownames(installed.packages(priority="base"))
-			pkgs <- pkgs[!base]
-			version <- version[!base]
-
-			if (length(pkgs) > 0){
-				for (n in 1:length(pkgs)){
-				install_package_version(pkgs[n], version=version[n], lib=env_dir)
-				}
-
-				# Install dependencies	
-				deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
-				# Remove base packages from dependency list
-				deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
-				if (length(deps)>0)
-					install.packages(deps, lib=env_dir)
-			}			
-		}else{
-			stop("virtualenv does not support repositories other than CRAN for the time being.")
+		for (r in 1:length(resources)){	
+			if (resources[[r]]$name == "CRAN"){		
+				pkgs <- names(resources[[r]]$packages)
+				version <- as.vector(resources[[r]]$packages)
+				if (length(pkgs) > 0){
+					for (n in 1:length(pkgs)){
+					install_package_version(pkgs[n], version=version[n], 
+								repos=resources[[r]]$url,
+								lib=env_dir)
+					}
+					# Install dependencies	
+					deps <- unique(unlist(tools::package_dependencies(pkgs, recursive=TRUE)))
+					# Remove base packages from dependency list
+					deps <- setdiff(deps, installed.packages(priority="base")[,"Package"])
+					if (length(deps)>0)
+						install.packages(deps, lib=env_dir)
+				}		
+			}
 		}
+
 	}
 
 	# Migrate base packages to the new virtualenv directory
@@ -78,7 +75,6 @@ install_package_version <- function(pkg, version, repos = getOption("repos"), ty
 			...){
 	contriburl <- contrib.url(repos, type)
 	available <- available.packages(contriburl)
-
 	if (pkg %in% row.names(available)) {
 		current.version <- available[pkg, 'Version']
 		if (is.null(version) || version == current.version) {
@@ -86,9 +82,8 @@ install_package_version <- function(pkg, version, repos = getOption("repos"), ty
 	        }else{
 			url <- get_package_url(pkg, version)
 			install.packages(url, repos=NULL, type="source", ...)
-
 		}
-	}	    	
+	}	
 }
 
 get_package_url <- function(pkg, version){
