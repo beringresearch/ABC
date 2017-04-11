@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.preprocessing import MinMaxScaler, Imputer
-
+from sklearn.ensemble import IsolationForest
 
 #from keras import regularizers
 from keras.models import Model
@@ -30,21 +30,30 @@ from keras.callbacks import EarlyStopping
 
 def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
-    np.random.seed(123)
- 
-    min_max_scaler = MinMaxScaler(feature_range=(-0.5, 0.5)) 
 
+    np.random.seed(123)
+    
+    # Initialise scikitlearn constructors
+    min_max_scaler = MinMaxScaler(feature_range=(-0.5, 0.5)) 
+    clf = IsolationForest(max_samples=256,
+                          n_jobs=-1,
+                          random_state=np.random.RandomState(42))
     impute_nas = Imputer()
+
     X = [] 
     marker_names = np.genfromtxt(markers, dtype='str')
-
+ 
+    
     # Read in data
     for filename in text_files:
         data = pd.read_table(filename, skiprows=nskip)
         tmp = np.arcsinh(data[marker_names].values/5) 
         if np.isnan(tmp).any():
             tmp = impute_nas.fit_transform(tmp)
-        tmp = min_max_scaler.fit_transform(tmp) 
+        tmp = min_max_scaler.fit_transform(tmp)
+        clf.fit(tmp)
+        noise = clf.predict(tmp)
+        tmp = tmp[noise > 0,]
         X.append(tmp) 
      
     deepflow = []
@@ -55,6 +64,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     sys.stdout.write("Learning file structure...")
     spinner = Spinner()
     spinner.start()
+
     for x in X:
         # Define network architecture
         input_img = Input(shape=(len(marker_names),))
@@ -66,16 +76,13 @@ def run(markers, text_files, nskip, images_path, logs_path):
         decoded = Dense(10, activation='tanh')(decoded) 
         decoded = Dense(20, activation='tanh')(decoded)
         decoded = Dense(len(marker_names), activation='tanh')(decoded)
-
         # Early stopping criteria
         early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
                                    patience=10, mode='auto')
-
         # The main encoder model with the less important autoencoder
         encoder = Model(inputs=input_img, outputs=encoded)
         autoencoder = Model(inputs=input_img, outputs=decoded)
         autoencoder.compile(optimizer='adam', loss='mse')
-
         f = autoencoder.fit(x, x, epochs=250,
                         shuffle=True, validation_data=(x, x),
                         callbacks=[early_stopping],
@@ -84,6 +91,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
         yh = encoder.predict(x) 
         deepflow.append(yh)
         model.append(encoder)
+
     spinner.stop()
     sys.stdout.write("FINISHED")
 
