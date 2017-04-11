@@ -1,7 +1,0 @@
-Theano
-tensorflow
-keras
-numpy
-pandas
-sklearn
-h5py
