@@ -12,8 +12,6 @@ which the generated images will be saved.
 
 import os.path
 import sys
-import time
-import threading
 import multiprocessing
 
 import matplotlib.pyplot as plt
@@ -27,6 +25,8 @@ from sklearn.ensemble import IsolationForest
 from keras.models import Model
 from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
+
+from deepcytof.spinner import Spinner
 
 import theano
 theano.config.openmp = True
@@ -136,40 +136,4 @@ def run(markers, text_files, nskip, images_path, logs_path):
     spinner.stop()
     sys.stdout.write("FINISHED\n")
 
-class Spinner:
-    """A pretty spinner to indicate progress, because why not :) ."""
 
-    busy = False
-    delay = 0.1
-
-    @staticmethod
-    def spinning_cursor():
-        """Spinning cursror running in a separate thread."""
-        while 1:
-            for cursor in '|/-\\':
-                yield cursor
-
-    def __init__(self, delay=None):
-        """Constructor."""
-        self.spinner_generator = self.spinning_cursor()
-        if delay and float(delay):
-            self.delay = delay
-
-    def spinner_task(self):
-        """Task definition."""
-        while self.busy:
-            sys.stdout.write(next(self.spinner_generator))
-            sys.stdout.flush()
-            time.sleep(self.delay)
-            sys.stdout.write('\b')
-            sys.stdout.flush()
-
-    def start(self):
-        """Start spinner."""
-        self.busy = True
-        threading.Thread(target=self.spinner_task).start()
-
-    def stop(self):
-        """Stop spinnner."""
-        self.busy = False
-        time.sleep(self.delay)
