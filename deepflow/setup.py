@@ -1,8 +1,9 @@
 from setuptools import setup
+from setuptools import find_packages
 
 setup(
-    name="deepflow",
-    version="0.1",
+    name="deepcytof",
+    version="0.0.2",
     description="Deep autoencoders for dimensionality reduction.",
     url="https://github.com/beringresearch/ABC/tree/master/deepflow",
     author="Benjamin Szubert, Ignat Drozdov",
@@ -24,29 +25,26 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+
+        'Programming Language :: Python :: 3' 
     ],
-    keywords="keras autoencoders deep learning neural networks",
-    packages=["deepflow"],
+    keywords="keras autoencoders deep learning neural networks", 
     install_requires=[
         "Theano",
-        "tensorflow",
-        "keras",
+        "scipy",
+        "matplotlib",
         "numpy",
         "pandas",
         "sklearn",
-        "h5py"
-    ],
+        "h5py",
+        "keras",
+            ],
     entry_points={
         "console_scripts": [
-            "deepflow=deepflow:main"
+            "deep-flow=deepcytof.deepflow:main",
+            "deep-cluster=deepcytof.deepcluster:main"
         ],
     },
+    packages=find_packages(),
     zip_safe=False
 )

@@ -12,14 +12,13 @@ which the generated images will be saved.
 
 import os.path
 import sys
-import time
-import threading
+import multiprocessing
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-from sklearn.preprocessing import MinMaxScaler, Imputer
+from sklearn.preprocessing import Imputer, StandardScaler
 from sklearn.ensemble import IsolationForest
 
 #from keras import regularizers
@@ -27,6 +26,11 @@ from keras.models import Model
 from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
 
+from deepcytof.spinner import Spinner
+
+import theano
+theano.config.openmp = True
+OMP_NUM_THREADS=multiprocessing.cpu_count()
 
 def run(markers, text_files, nskip, images_path, logs_path):
     """Main algo."""
@@ -34,7 +38,7 @@ def run(markers, text_files, nskip, images_path, logs_path):
     np.random.seed(123)
     
     # Initialise scikitlearn constructors
-    min_max_scaler = MinMaxScaler(feature_range=(-0.5, 0.5)) 
+    min_max_scaler = StandardScaler()
     clf = IsolationForest(max_samples=256,
                           n_jobs=-1,
                           random_state=np.random.RandomState(42))
@@ -68,14 +72,14 @@ def run(markers, text_files, nskip, images_path, logs_path):
     for x in X:
         # Define network architecture
         input_img = Input(shape=(len(marker_names),))
-        encoded = Dense(20, activation='tanh')(input_img)
-        encoded = Dense(10, activation='tanh')(encoded)
-        encoded = Dense(4, activation='tanh')(encoded)
+        encoded = Dense(20, activation='softsign')(input_img)
+        encoded = Dense(10, activation='softsign')(encoded)
+        encoded = Dense(4, activation='softsign')(encoded)
         encoded = Dense(2, activation='linear')(encoded)
-        decoded = Dense(4, activation='tanh')(encoded)
-        decoded = Dense(10, activation='tanh')(decoded) 
-        decoded = Dense(20, activation='tanh')(decoded)
-        decoded = Dense(len(marker_names), activation='tanh')(decoded)
+        decoded = Dense(4, activation='softsign')(encoded)
+        decoded = Dense(10, activation='softsign')(decoded) 
+        decoded = Dense(20, activation='softsign')(decoded)
+        decoded = Dense(len(marker_names), activation='softsign')(decoded)
         # Early stopping criteria
         early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
                                    patience=10, mode='auto')
@@ -132,40 +136,4 @@ def run(markers, text_files, nskip, images_path, logs_path):
     spinner.stop()
     sys.stdout.write("FINISHED\n")
 
-class Spinner:
-    """A pretty spinner to indicate progress, because why not :) ."""
 
-    busy = False
-    delay = 0.1
-
-    @staticmethod
-    def spinning_cursor():
-        """Spinning cursror running in a separate thread."""
-        while 1:
-            for cursor in '|/-\\':
-                yield cursor
-
-    def __init__(self, delay=None):
-        """Constructor."""
-        self.spinner_generator = self.spinning_cursor()
-        if delay and float(delay):
-            self.delay = delay
-
-    def spinner_task(self):
-        """Task definition."""
-        while self.busy:
-            sys.stdout.write(next(self.spinner_generator))
-            sys.stdout.flush()
-            time.sleep(self.delay)
-            sys.stdout.write('\b')
-            sys.stdout.flush()
-
-    def start(self):
-        """Start spinner."""
-        self.busy = True
-        threading.Thread(target=self.spinner_task).start()
-
-    def stop(self):
-        """Stop spinnner."""
-        self.busy = False
-        time.sleep(self.delay)
