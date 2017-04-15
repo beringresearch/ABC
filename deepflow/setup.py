@@ -38,6 +38,8 @@ setup(
         "sklearn",
         "h5py",
         "keras",
+        "cython",
+        "hdbscan"
             ],
     entry_points={
         "console_scripts": [
