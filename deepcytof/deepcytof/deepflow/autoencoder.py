@@ -12,7 +12,6 @@ which the generated images will be saved.
 
 import os.path
 import sys
-import multiprocessing
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -28,11 +27,8 @@ from keras.callbacks import EarlyStopping
 
 from deepcytof.spinner import Spinner
 
-import theano
-theano.config.openmp = True
-OMP_NUM_THREADS=multiprocessing.cpu_count()
 
-def run(markers, text_files, nskip, images_path, logs_path):
+def run(markers, text_files, nskip, images_path, logs_path, transform):
     """Main algo."""
 
     np.random.seed(123)
@@ -51,7 +47,10 @@ def run(markers, text_files, nskip, images_path, logs_path):
     # Read in data
     for filename in text_files:
         data = pd.read_table(filename, skiprows=nskip)
-        tmp = np.arcsinh(data[marker_names].values/5) 
+        tmp = data[marker_names].values
+        if transform:
+            tmp = np.arcsinh(tmp/5) 
+
         if np.isnan(tmp).any():
             tmp = impute_nas.fit_transform(tmp)
         tmp = min_max_scaler.fit_transform(tmp)
@@ -65,21 +64,21 @@ def run(markers, text_files, nskip, images_path, logs_path):
     model = []
     
     # Train the autoencoder on each dataset
-    sys.stdout.write("Learning file structure...")
+    sys.stdout.write("Learning structure...")
     spinner = Spinner()
     spinner.start()
 
     for x in X:
         # Define network architecture
         input_img = Input(shape=(len(marker_names),))
-        encoded = Dense(20, activation='softsign')(input_img)
-        encoded = Dense(10, activation='softsign')(encoded)
-        encoded = Dense(4, activation='softsign')(encoded)
+        encoded = Dense(150, activation='softsign')(input_img)
+        encoded = Dense(150, activation='softsign')(encoded)
+        encoded = Dense(500, activation='softsign')(encoded)
         encoded = Dense(2, activation='linear')(encoded)
-        decoded = Dense(4, activation='softsign')(encoded)
-        decoded = Dense(10, activation='softsign')(decoded) 
-        decoded = Dense(20, activation='softsign')(decoded)
-        decoded = Dense(len(marker_names), activation='softsign')(decoded)
+        decoded = Dense(500, activation='softsign')(encoded)
+        decoded = Dense(150, activation='softsign')(decoded) 
+        decoded = Dense(150, activation='softsign')(decoded)
+        decoded = Dense(len(marker_names), activation='linear')(decoded)
         # Early stopping criteria
         early_stopping = EarlyStopping(monitor='val_loss', min_delta=0,
                                    patience=10, mode='auto')
