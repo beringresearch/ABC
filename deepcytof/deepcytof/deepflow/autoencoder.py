@@ -20,7 +20,7 @@ import numpy as np
 from sklearn.preprocessing import Imputer, StandardScaler
 from sklearn.ensemble import IsolationForest
 
-#from keras import regularizers
+from keras import regularizers
 from keras.models import Model
 from keras.layers import Input, Dense
 from keras.callbacks import EarlyStopping
@@ -74,7 +74,8 @@ def run(markers, text_files, nskip, images_path, logs_path, transform):
         encoded = Dense(150, activation='softsign')(input_img)
         encoded = Dense(150, activation='softsign')(encoded)
         encoded = Dense(500, activation='softsign')(encoded)
-        encoded = Dense(2, activation='linear')(encoded)
+        encoded = Dense(2, activation='linear',
+                activity_regularizer=regularizers.l1(10e-5))(encoded)
         decoded = Dense(500, activation='softsign')(encoded)
         decoded = Dense(150, activation='softsign')(decoded) 
         decoded = Dense(150, activation='softsign')(decoded)
