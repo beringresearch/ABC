@@ -7,9 +7,12 @@ import hdbscan
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+
 from sklearn.preprocessing import StandardScaler, Imputer
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import LabelEncoder
+
+from keras import regularizers
 from keras.utils import np_utils
 from keras.models import Model
 from keras.models import Sequential
@@ -47,13 +50,14 @@ def run(markers, files, weights, images_folder, logs_folder, cluster_size, nskip
 
     # Define network achitecture
     input_img = Input(shape=(len(marker_names),))
-    encoded = Dense(20, activation='softsign')(input_img)
-    encoded = Dense(10, activation='softsign')(encoded)
-    encoded = Dense(4, activation='softsign')(encoded)
-    encoded = Dense(2, activation='linear')(encoded)
-    decoded = Dense(4, activation='softsign')(encoded)
-    decoded = Dense(10, activation='softsign')(decoded)
-    decoded = Dense(20, activation='softsign')(decoded)
+    encoded = Dense(150, activation='softsign')(input_img)
+    encoded = Dense(150, activation='softsign')(encoded)
+    encoded = Dense(500, activation='softsign')(encoded)
+    encoded = Dense(2, activation='linear',
+            activity_regularizer=regularizers.l1(10e-5))(encoded)
+    decoded = Dense(500, activation='softsign')(encoded)
+    decoded = Dense(150, activation='softsign')(decoded)
+    decoded = Dense(150, activation='softsign')(decoded)
     decoded = Dense(len(marker_names), activation='softsign')(decoded)
     
     # The main encoder model with the less important autoencoder
