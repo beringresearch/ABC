@@ -87,7 +87,13 @@ def run(markers, text_files, nskip, images_path, logs_path, transform):
         encoder = Model(inputs=input_img, outputs=encoded)
         autoencoder = Model(inputs=input_img, outputs=decoded)
         autoencoder.compile(optimizer='adam', loss='mse')
-        f = autoencoder.fit(x, x, epochs=250,
+
+        # Add noise to the input layer
+        corruption = 0.1
+        x_noise = x
+        x_noise[np.random.choice(x.shape[0], int(np.ceil(corruption*x.shape[0]))),:] = 0 
+
+        f = autoencoder.fit(x_noise, x, epochs=250,
                         shuffle=True, validation_data=(x, x),
                         callbacks=[early_stopping],
                         verbose=0)
