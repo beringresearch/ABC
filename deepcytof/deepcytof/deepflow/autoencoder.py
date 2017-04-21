@@ -89,8 +89,9 @@ def run(markers, text_files, nskip, images_path, logs_path, transform):
         autoencoder.compile(optimizer='adam', loss='mse')
 
         # Add noise to the input layer
-        noise_factor = 0.5
-        x_noise = x + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x.shape)
+        corruption = 0.1
+        x_noise = x
+        x_noise[np.random.choice(x.shape[0], int(np.ceil(corruption*x.shape[0]))),:] = 0 
 
         f = autoencoder.fit(x_noise, x, epochs=250,
                         shuffle=True, validation_data=(x, x),
