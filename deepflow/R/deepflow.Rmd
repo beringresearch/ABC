@@ -44,8 +44,7 @@ observeEvent(input$filelist_rows_selected,
 	     {ix <- input$filelist_rows_selected
 	     fcs <- pull_fcs(filenames[ix], sqlitePath)
 	     gates <- colnames(fcs)
-	     parameters$data <- fcs
-	     parameters$selection <- colnames(fcs)
+	     parameters$data <- fcs 
 
 	     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 	     exists <- dbExistsTable(db, paste0(filenames[ix], "_coordinates"))
@@ -57,9 +56,7 @@ observeEvent(input$filelist_rows_selected,
 	     dbDisconnect(db)
  
 	     updateSelectizeInput(session, 'gateSelect', choices=gates)})
-			
-
-```
+			```
 
 ### Run
 ```{r}
@@ -70,6 +67,9 @@ selectInput("gateSelect", "Select Gates", gates, multiple=TRUE, selectize=FALSE,
 checkboxInput("asinhTransform", label = "Apply hyperbolic arcsin transformation", value = TRUE)
 
 actionButton("run", "Analyse", width = "100%")
+
+observeEvent(input$gateSelect, {parameters$selection <- input$gateSelect})
+
 ```
 
 Column {data-width=500}
@@ -81,9 +81,7 @@ autoencode <- eventReactive(input$run, {
 		withProgress(message = 'Learning...this may take a while', value = 0, max=4, {
 		ix <- input$filelist_rows_selected
 		fcs <- parameters$data
-		parameters$selection <- input$gateSelect
 		
-
 		X <- data.matrix(data.matrix(asinh(fcs[, parameters$selection]/5)))
 		incProgress(1, detail = "Running autoencoder.")	
 		a <- autoencoder(X)
