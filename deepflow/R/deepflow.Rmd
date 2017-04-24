@@ -23,8 +23,35 @@ parameters <- reactiveValues(data=NULL, selection=NULL, coordinates=NULL)
 
 
 filenames <- dbListTables(db)
-files <-  data.frame(File=filenames) 
+files <-  data.frame(File=filenames)
 dbDisconnect(db)
+```
+
+
+My Datasets
+=======================================================================
+
+### All files
+```{r}
+DT::dataTableOutput("dbList")
+
+output$dbList <- renderDataTable({datatable(files, options = list(bPaginate=FALSE, scrollY = "200"),
+				selection=list(mode="single", target="cell"),
+				rownames=FALSE)}, server=FALSE)
+```
+
+###
+```{r}
+actionLink("deleteFiles", "x Remove all selected Files")
+
+
+observeEvent(input$deleteFiles,{
+		     ix <- input$dbList_cells_selected
+		     files_to_remove <- filenames[ix]
+		     db <- dbConnect(RSQLite::SQLite(), sqlitePath) 
+		     dbRemoveTable(db, files_to_remove)
+		     dbDisconnect(db)
+})
 ```
 
 Visualisations
@@ -36,8 +63,10 @@ Column {data-width=250}
 ### My Files
 ```{r}
 DT::dataTableOutput("filelist")
-output$filelist <- DT::renderDataTable({
-	DT::datatable(files, options = list(bPaginate = FALSE, scrollY = "200px"), selection="single")
+output$filelist <- renderDataTable({
+	datatable(files, options = list(bPaginate = FALSE,
+					scrollY = "200px"), 
+		  rownames = FALSE, selection="single")
 }, server=FALSE, selection="single")
 
 observeEvent(input$filelist_rows_selected,
@@ -56,7 +85,7 @@ observeEvent(input$filelist_rows_selected,
 	     dbDisconnect(db)
  
 	     updateSelectizeInput(session, 'gateSelect', choices=gates)})
-			```
+```
 
 ### Run
 
