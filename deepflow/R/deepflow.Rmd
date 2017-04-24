@@ -37,7 +37,7 @@ Column {data-width=250}
 ```{r}
 DT::dataTableOutput("filelist")
 output$filelist <- DT::renderDataTable({
-	DT::datatable(files, options = list(bPaginate = FALSE), selection="single")
+	DT::datatable(files, options = list(bPaginate = FALSE, scrollY = "200px"), selection="single")
 }, server=FALSE, selection="single")
 
 observeEvent(input$filelist_rows_selected,
@@ -59,16 +59,22 @@ observeEvent(input$filelist_rows_selected,
 			```
 
 ### Run
+
 ```{r}
 
-
+# Elements
 selectInput("gateSelect", "Select Gates", gates, multiple=TRUE, selectize=FALSE, width="100%", size=8)
-
 checkboxInput("asinhTransform", label = "Apply hyperbolic arcsin transformation", value = TRUE)
-
 actionButton("run", "Analyse", width = "100%")
 
+
+# Listeners
 observeEvent(input$gateSelect, {parameters$selection <- input$gateSelect})
+
+observeEvent(input$run, {
+		      updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
+		      autoencode()
+})
 
 ```
 
@@ -77,44 +83,50 @@ Column {data-width=500}
 ### Representative Features
 
 ```{r}
-autoencode <- eventReactive(input$run, {
-		withProgress(message = 'Learning...this may take a while', value = 0, max=4, {
-		ix <- input$filelist_rows_selected
-		fcs <- parameters$data
-		
-		X <- data.matrix(data.matrix(asinh(fcs[, parameters$selection]/5)))
-		incProgress(1, detail = "Running autoencoder.")	
-		a <- autoencoder(X)
-		yh <- as.data.frame(keras_predict(a$encoder, X))
-		tX <- t(yh)
 
-		incProgress(1, detail = "Estimating embeddings.")		
-		v <- largeVis(tX, threads=4, verbose=TRUE)
-		xy <- t(v$coords)
-		coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
-		parameters$coordinates <- coordinates
-		
-		incProgress(1, detail = "Saving results to database.")
-		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-		dbWriteTable(db, paste0(filenames[input$filelist_rows_selected], "_coordinates"), coordinates, overwrite=TRUE)
-		dbWriteTable(db, paste0(filenames[input$filelist_rows_selected], "_gates"), data.frame(Gates = parameters$selection), overwrite=TRUE)	
-
-		dbDisconnect(db)
-		})
-
-		coordinates
-		
-})
-
+# Elements
 renderPlot({
-	if (is.null(parameters$data) | is.null(parameters$selection)){
+	if (is.null(parameters$data) | is.null(parameters$selection)){	
 		return()
-	}else if (is.null(parameters$coordinates)){
+	} else if (is.null(parameters$coordinates)){
 		p <- ggplot(autoencode(), aes(Deep1, Deep2)) + geom_point()
 		print(p)
-	}else {
-		ggplot(parameters$coordinates, aes(Deep1, Deep2)) + geom_point()
+	} else {
+		p <- ggplot(parameters$coordinates, aes(Deep1, Deep2)) + geom_point()
+		print(p)
 	}
+})
+
+# Listeners
+
+autoencode <- eventReactive(input$run, {
+withProgress(message = 'Learning...this may take a while', value = 0, max=4, {
+ix <- input$filelist_rows_selected
+fcs <- parameters$data
+
+X <- data.matrix(data.matrix(asinh(fcs[, parameters$selection]/5)))
+incProgress(1, detail = "Running autoencoder.")
+a <- autoencoder(X)
+yh <- as.data.frame(keras_predict(a$encoder, X))
+tX <- t(yh)
+
+incProgress(1, detail = "Estimating embeddings.")
+set.seed(1234)
+v <- largeVis(tX, threads=4, verbose=TRUE, seed=123)
+xy <- t(v$coords)
+coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
+parameters$coordinates <- coordinates
+
+incProgress(1, detail = "Saving results to database.")
+db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+dbWriteTable(db, paste0(filenames[input$filelist_rows_selected], "_coordinates"), coordinates, overwrite=TRUE)
+dbWriteTable(db, paste0(filenames[input$filelist_rows_selected], "_gates"), data.frame(Gates = parameters$selection), overwrite=TRUE)	
+
+dbDisconnect(db)
+})
+
+coordinates
+
 })
 
 ```
@@ -124,10 +136,6 @@ Column {data-width=250}
 ### Gates
 ```{r}
 selectInput("visualiseGates", "Visualise Gates", gates, multiple=TRUE, selectize=FALSE, width="100%", size=8)
-
-observeEvent(input$run, {
-		      updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
-})
 
 actionLink("clearOutput", "x Clear All Output")
 
