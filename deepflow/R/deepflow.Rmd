@@ -132,7 +132,7 @@ autoencode <- eventReactive(input$run, {
 		incProgress(1, detail = "Saving results to database.")
 		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 		dbWriteTable(db,
-			     paste0(parametes$files$File[input$filelist_rows_selected], "_coordinates"),
+			     paste0(parameters$files$File[input$filelist_rows_selected], "_coordinates"),
 			     coordinates, overwrite=TRUE)
 		dbWriteTable(db,
 			     paste0(parameters$files$File[input$filelist_rows_selected], "_gates"),
