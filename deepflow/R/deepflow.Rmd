@@ -12,11 +12,13 @@ library(DBI)
 library(RSQLite)
 library(deepflow)
 library(ggplot2)
+library(data.table)
 
+options(shiny.maxRequestSize=600*1024^2) 
 sqlitePath <- "~/.deepflow/deepflow.db"
 gates = vector()
 
-# Retrieve table names
+# Retrieve existing table names
 db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 
 parameters <- reactiveValues(data=NULL,
@@ -43,8 +45,9 @@ Column {data-width=250}
 DT::dataTableOutput("filelist")
 output$filelist <- renderDataTable({
 	datatable(parameters$files, options = list(bPaginate = FALSE,
-					scrollY = "200px"), 
-		  rownames = FALSE, selection="single")
+					scrollY = "200px"),
+		 selection=list(mode="single", target="row"), 
+		 rownames = FALSE)
 }, server=FALSE, selection="single")
 
 observeEvent(input$filelist_rows_selected,
@@ -129,10 +132,10 @@ autoencode <- eventReactive(input$run, {
 		incProgress(1, detail = "Saving results to database.")
 		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 		dbWriteTable(db,
-			     paste0(filenames[input$filelist_rows_selected], "_coordinates"),
+			     paste0(parametes$files$File[input$filelist_rows_selected], "_coordinates"),
 			     coordinates, overwrite=TRUE)
 		dbWriteTable(db,
-			     paste0(filenames[input$filelist_rows_selected], "_gates"),
+			     paste0(parameters$files$File[input$filelist_rows_selected], "_gates"),
 			     data.frame(Gates = parameters$selection), overwrite=TRUE)	
 
 		dbDisconnect(db)
@@ -163,6 +166,8 @@ actionLink("saveImage", "⎙ Save Image")
 My Datasets
 =======================================================================
 
+Column {data-width=600}
+-----------------------------------------------------------------------
 ### All files
 ```{r}
 DT::dataTableOutput("dbList")
@@ -192,10 +197,35 @@ observeEvent(input$deleteFiles,{
 		     filenames <- dbListTables(db)
 		     parameters$files <-  data.frame(File=filenames)
 
-		     dbDisconnect(db)
-		    
+		     dbDisconnect(db)	    
 })
 
+```
+
+ Column {data-width=250}
+----------------------------------------------------------------------
+### Upload file
+
+```{r}
+fileInput("fileUpload", label = h4("Upload local flow cytometry datasets"))
+
+observeEvent(input$fileUpload, {
+	
+	inFile <- input$fileUpload
+	if (is.null(inFile))
+		return(NULL)
+	fcs <- fread(inFile$datapath)
+	fcs <- as.data.frame(unclass(fcs))
+	keep <- sapply(fcs, class) %in% c("numeric", "integer")
+	fcs <- fcs[,keep]
+
+	db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+	dbWriteTable(db, inFile$name, fcs, overwrite=TRUE)
+
+	filenames <- dbListTables(db)
+	parameters$files <-  data.frame(File=filenames)
+	dbDisconnect(db)
+})
 ```
 
 
