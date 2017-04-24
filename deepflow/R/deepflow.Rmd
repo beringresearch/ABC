@@ -19,39 +19,13 @@ gates = vector()
 # Retrieve table names
 db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 
-parameters <- reactiveValues(data=NULL, selection=NULL, coordinates=NULL)
+parameters <- reactiveValues(data=NULL, transform=NULL, selection=NULL, coordinates=NULL)
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
 
 
 filenames <- dbListTables(db)
 files <-  data.frame(File=filenames)
 dbDisconnect(db)
-```
-
-
-My Datasets
-=======================================================================
-
-### All files
-```{r}
-DT::dataTableOutput("dbList")
-
-output$dbList <- renderDataTable({datatable(files, options = list(bPaginate=FALSE, scrollY = "200"),
-				selection=list(mode="single", target="cell"),
-				rownames=FALSE)}, server=FALSE)
-```
-
-###
-```{r}
-actionLink("deleteFiles", "x Remove all selected Files")
-
-
-observeEvent(input$deleteFiles,{
-		     ix <- input$dbList_cells_selected
-		     files_to_remove <- filenames[ix]
-		     db <- dbConnect(RSQLite::SQLite(), sqlitePath) 
-		     dbRemoveTable(db, files_to_remove)
-		     dbDisconnect(db)
-})
 ```
 
 Visualisations
@@ -101,7 +75,7 @@ actionButton("run", "Analyse", width = "100%")
 observeEvent(input$gateSelect, {parameters$selection <- input$gateSelect})
 
 observeEvent(input$run, {
-		      updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
+		      updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection) 
 		      autoencode()
 })
 
@@ -117,11 +91,24 @@ Column {data-width=500}
 renderPlot({
 	if (is.null(parameters$data) | is.null(parameters$selection)){	
 		return()
-	} else if (is.null(parameters$coordinates)){
-		p <- ggplot(autoencode(), aes(Deep1, Deep2)) + geom_point()
+	} else if (is.null(parameters$coordinates)){	
+		p <- ggplot(autoencode(),
+			aes(Deep1, Deep2)) + geom_point() +
+	   		theme(panel.grid.major = element_blank(),
+				 panel.grid.minor = element_blank(),
+				 panel.background = element_blank(), 
+				 axis.line = element_line(colour = "black"))
 		print(p)
 	} else {
-		p <- ggplot(parameters$coordinates, aes(Deep1, Deep2)) + geom_point()
+		selected_gate_value <- parameters$transform[,input$visualiseGates]	
+		p <- ggplot(parameters$coordinates,
+			    aes(Deep1, Deep2, col=selected_gate_value)) + geom_point() +
+	   		scale_colour_gradientn(colours = jet.colors(7)) +
+			theme(legend.title=element_blank(),
+			      panel.grid.major = element_blank(),
+			      panel.grid.minor = element_blank(),
+			      panel.background = element_blank(), 
+			      axis.line = element_line(colour = "black"))
 		print(p)
 	}
 })
@@ -134,6 +121,7 @@ ix <- input$filelist_rows_selected
 fcs <- parameters$data
 
 X <- data.matrix(data.matrix(asinh(fcs[, parameters$selection]/5)))
+parameters$transform <- X
 incProgress(1, detail = "Running autoencoder.")
 a <- autoencoder(X)
 yh <- as.data.frame(keras_predict(a$encoder, X))
@@ -164,19 +152,9 @@ Column {data-width=250}
 -----------------------------------------------------------------------
 ### Gates
 ```{r}
-selectInput("visualiseGates", "Visualise Gates", gates, multiple=TRUE, selectize=FALSE, width="100%", size=8)
+selectInput("visualiseGates", "Visualise Gates", gates, selected=NULL,
+	    multiple=FALSE, width="100%")
 
-actionLink("clearOutput", "x Clear All Output")
-
-observeEvent(input$clearOutput, {
-	parameters <- reactiveValues(data=NULL, selection=NULL, coordinates=NULL)
-	db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-	ix <- input$filelist_rows_selected
-	dbRemoveTable(db, paste0(filenames[ix], "_coordinates"))
-	dbRemoveTable(db, paste0(filenames[ix], "_gates"))
-	dbDisconnect(db)
-
-})
 
 ```
 
@@ -186,6 +164,32 @@ observeEvent(input$clearOutput, {
 
 actionLink("saveImage", "⎙ Save Image")
 
+```
+
+My Datasets
+=======================================================================
+
+### All files
+```{r}
+DT::dataTableOutput("dbList")
+
+output$dbList <- renderDataTable({datatable(files, options = list(bPaginate=FALSE, scrollY = "200"),
+				selection=list(mode="single", target="cell"),
+				rownames=FALSE)}, server=FALSE)
+```
+
+###
+```{r}
+actionLink("deleteFiles", "x Remove all selected Files")
+
+
+observeEvent(input$deleteFiles,{
+		     ix <- input$dbList_cells_selected
+		     files_to_remove <- filenames[ix]
+		     db <- dbConnect(RSQLite::SQLite(), sqlitePath) 
+		     dbRemoveTable(db, files_to_remove)
+		     dbDisconnect(db)
+})
 ```
 
 
