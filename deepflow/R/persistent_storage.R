@@ -4,12 +4,11 @@
 #' @param name 		character string indicating table name
 #'
 #' @import RSQLite DBI
-#' @importFrom data.table fread
 #' @export
 
 push_fcs <- function(path, name, sqlpath = "~/.deepflow/deepflow.db"){
 	
-	X <- fread(path)
+	X <- data.table::fread(path)
 	X <- as.data.frame(unclass(X))
 	keep <- sapply(X, class) %in% c("numeric", "integer")
 	X <- X[,keep]

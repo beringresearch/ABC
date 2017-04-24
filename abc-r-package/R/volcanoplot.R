@@ -12,7 +12,10 @@ volcanoplot <- function(fc, pval, lbl = NULL, ntop = length(lbl)){
 		stop("Label length must match fc and pval vector length.")
 	
 	l <- rep(NA, length(lbl))
-	l[1:ntop] <- lbl[1:ntop]
+	pos_ix <- order(fc, decreasing=TRUE)
+	neg_ix <- order(fc, decreasing=FALSE)
+	l[pos_ix[1:ntop]] <- lbl[pos_ix[1:ntop]]
+	l[neg_ix[1:ntop]] <- lbl[neg_ix[1:ntop]]
 
 	df <- data.frame(fc = fc, pval = pval, col = as.factor(ifelse(fc > 0, "up", "down")), lbl = l)
 

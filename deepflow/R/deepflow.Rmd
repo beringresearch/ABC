@@ -12,19 +12,25 @@ library(DBI)
 library(RSQLite)
 library(deepflow)
 library(ggplot2)
+library(data.table)
 
+options(shiny.maxRequestSize=600*1024^2) 
 sqlitePath <- "~/.deepflow/deepflow.db"
 gates = vector()
 
-# Retrieve table names
+# Retrieve existing table names
 db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 
-parameters <- reactiveValues(data=NULL, transform=NULL, selection=NULL, coordinates=NULL)
+parameters <- reactiveValues(data=NULL,
+			     selection=NULL,
+			     coordinates=NULL,
+			     files=NULL)
+
 jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
 
 
 filenames <- dbListTables(db)
-files <-  data.frame(File=filenames)
+parameters$files <-  data.frame(File=filenames)
 dbDisconnect(db)
 ```
 
@@ -38,22 +44,22 @@ Column {data-width=250}
 ```{r}
 DT::dataTableOutput("filelist")
 output$filelist <- renderDataTable({
-	datatable(files, options = list(bPaginate = FALSE,
-					scrollY = "200px"), 
-		  rownames = FALSE, selection="single")
+	datatable(parameters$files, options = list(bPaginate = FALSE,
+					scrollY = "200px"),
+		 selection=list(mode="single", target="row"), 
+		 rownames = FALSE)
 }, server=FALSE, selection="single")
 
 observeEvent(input$filelist_rows_selected,
 	     {ix <- input$filelist_rows_selected
-	     fcs <- pull_fcs(filenames[ix], sqlitePath)
+	     fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
 	     gates <- colnames(fcs)
-	     parameters$data <- fcs 
-
+	     parameters$data <- asinh(data.matrix(fcs)/5)
 	     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-	     exists <- dbExistsTable(db, paste0(filenames[ix], "_coordinates"))
+	     exists <- dbExistsTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
 	     if(exists){
-		     parameters$coordinates <- dbReadTable(db, paste0(filenames[ix], "_coordinates"))
-		     parameters$selection <- dbReadTable(db, paste0(filenames[ix], "_gates"))[,1]
+		     parameters$coordinates <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
+		     parameters$selection <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_gates"))[,1]
 		     updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
 	     }
 	     dbDisconnect(db)
@@ -89,26 +95,16 @@ Column {data-width=500}
 
 # Elements
 renderPlot({
-	if (is.null(parameters$data) | is.null(parameters$selection)){	
+	if (is.null(parameters$coordinates)){	
 		return()
-	} else if (is.null(parameters$coordinates)){	
-		p <- ggplot(autoencode(),
-			aes(Deep1, Deep2)) + geom_point() +
-	   		theme(panel.grid.major = element_blank(),
-				 panel.grid.minor = element_blank(),
-				 panel.background = element_blank(), 
-				 axis.line = element_line(colour = "black"))
-		print(p)
-	} else {
-		selected_gate_value <- parameters$transform[,input$visualiseGates]	
+	}  else {	
+		selected_gate_value <- parameters$data[,input$visualiseGates]	
+		
 		p <- ggplot(parameters$coordinates,
 			    aes(Deep1, Deep2, col=selected_gate_value)) + geom_point() +
 	   		scale_colour_gradientn(colours = jet.colors(7)) +
-			theme(legend.title=element_blank(),
-			      panel.grid.major = element_blank(),
-			      panel.grid.minor = element_blank(),
-			      panel.background = element_blank(), 
-			      axis.line = element_line(colour = "black"))
+			theme_void() + 
+			theme(legend.title=element_blank())
 		print(p)
 	}
 })
@@ -116,34 +112,35 @@ renderPlot({
 # Listeners
 
 autoencode <- eventReactive(input$run, {
-withProgress(message = 'Learning...this may take a while', value = 0, max=4, {
-ix <- input$filelist_rows_selected
-fcs <- parameters$data
+	withProgress(message = 'Learning...this may take a while', value=0, max=4, {
+		ix <- input$filelist_rows_selected
+		fcs <- parameters$data
 
-X <- data.matrix(data.matrix(asinh(fcs[, parameters$selection]/5)))
-parameters$transform <- X
-incProgress(1, detail = "Running autoencoder.")
-a <- autoencoder(X)
-yh <- as.data.frame(keras_predict(a$encoder, X))
-tX <- t(yh)
+		X <- fcs[, parameters$selection]	
+		incProgress(1, detail = "Running autoencoder.")
+		a <- autoencoder(X)
+		yh <- as.data.frame(keras_predict(a$encoder, scale(X)))
+		tX <- t(yh)
 
-incProgress(1, detail = "Estimating embeddings.")
-set.seed(1234)
-v <- largeVis(tX, threads=4, verbose=TRUE, seed=123)
-xy <- t(v$coords)
-coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
-parameters$coordinates <- coordinates
+		incProgress(1, detail = "Estimating embeddings.")
+		set.seed(1234)
+		v <- largeVis(tX, threads=4, verbose=TRUE, seed=123)
+		xy <- t(v$coords)
+		coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
+		parameters$coordinates <- coordinates
 
-incProgress(1, detail = "Saving results to database.")
-db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-dbWriteTable(db, paste0(filenames[input$filelist_rows_selected], "_coordinates"), coordinates, overwrite=TRUE)
-dbWriteTable(db, paste0(filenames[input$filelist_rows_selected], "_gates"), data.frame(Gates = parameters$selection), overwrite=TRUE)	
+		incProgress(1, detail = "Saving results to database.")
+		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+		dbWriteTable(db,
+			     paste0(parameters$files$File[input$filelist_rows_selected], "_coordinates"),
+			     coordinates, overwrite=TRUE)
+		dbWriteTable(db,
+			     paste0(parameters$files$File[input$filelist_rows_selected], "_gates"),
+			     data.frame(Gates = parameters$selection), overwrite=TRUE)	
 
-dbDisconnect(db)
+		dbDisconnect(db)
 })
-
-coordinates
-
+	coordinates
 })
 
 ```
@@ -153,7 +150,7 @@ Column {data-width=250}
 ### Gates
 ```{r}
 selectInput("visualiseGates", "Visualise Gates", gates, selected=NULL,
-	    multiple=FALSE, width="100%")
+	    multiple=FALSE, width="100%", selectize=TRUE)
 
 
 ```
@@ -169,13 +166,22 @@ actionLink("saveImage", "⎙ Save Image")
 My Datasets
 =======================================================================
 
+Column {data-width=600}
+-----------------------------------------------------------------------
 ### All files
 ```{r}
 DT::dataTableOutput("dbList")
 
-output$dbList <- renderDataTable({datatable(files, options = list(bPaginate=FALSE, scrollY = "200"),
-				selection=list(mode="single", target="cell"),
+output$dbList <- renderDataTable({datatable(parameters$files, options = list(bPaginate=FALSE, scrollY = "200"),
+				selection=list(mode="single", target="row"),
 				rownames=FALSE)}, server=FALSE)
+
+observeEvent(input$dbList_rows_selected,{
+		     print(input$dbList_rows_selected)
+
+})
+
+
 ```
 
 ###
@@ -184,11 +190,41 @@ actionLink("deleteFiles", "x Remove all selected Files")
 
 
 observeEvent(input$deleteFiles,{
-		     ix <- input$dbList_cells_selected
-		     files_to_remove <- filenames[ix]
-		     db <- dbConnect(RSQLite::SQLite(), sqlitePath) 
+		     ix <- input$dbList_rows_selected
+		     files_to_remove <- as.character(parameters$files$File[ix])
+		     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 		     dbRemoveTable(db, files_to_remove)
-		     dbDisconnect(db)
+		     filenames <- dbListTables(db)
+		     parameters$files <-  data.frame(File=filenames)
+
+		     dbDisconnect(db)	    
+})
+
+```
+
+ Column {data-width=250}
+----------------------------------------------------------------------
+### Upload file
+
+```{r}
+fileInput("fileUpload", label = h4("Upload local flow cytometry datasets"))
+
+observeEvent(input$fileUpload, {
+	
+	inFile <- input$fileUpload
+	if (is.null(inFile))
+		return(NULL)
+	fcs <- fread(inFile$datapath)
+	fcs <- as.data.frame(unclass(fcs))
+	keep <- sapply(fcs, class) %in% c("numeric", "integer")
+	fcs <- fcs[,keep]
+
+	db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+	dbWriteTable(db, inFile$name, fcs, overwrite=TRUE)
+
+	filenames <- dbListTables(db)
+	parameters$files <-  data.frame(File=filenames)
+	dbDisconnect(db)
 })
 ```
 

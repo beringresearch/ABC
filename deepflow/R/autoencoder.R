@@ -1,53 +1,56 @@
 #' Learn a deep autoencoder
 #'
 #' @param x		Numeric expression matrix
-#' @param hidden 	Vector of neurons in the hidden layer(s)
-#' @param activation	Vector of hidden layer activations
-#' @param epochs 	Number of training epochs
 #' @import kerasR
 #' @export
 
-autoencoder <- function(x, hidden = c(150, 150, 500, 4),
-			activation = c("softsign", "softsign", "softsign", "linear"),
-			epochs=100){
+autoencoder <- function(x){
 
 	x <- scale(x)
 	
-	# Encoder
 	encoder <- Sequential()
-	encoder$add(Dense(units=hidden[1],
-			  activation="linear",
+	encoder$add(Dense(units = 150,
+			  activation="softsign",
 			  input_shape=dim(x)[2],
 			  kernel_initializer=glorot_uniform(seed=1234)))
-	for (n in 2:length(hidden)){
-		encoder$add(Dense(units=hidden[n],
-				activation=activation[n],
-				kernel_initializer=glorot_uniform(seed=1234)))
-	}
+	encoder$add(Dense(units = 150,
+			  activation="softsign",
+			  kernel_initializer=glorot_uniform(seed=1234)))
+	encoder$add(Dense(units = 500,
+			  activation="softsign",
+			  kernel_initializer=glorot_uniform(seed=1234)))
+	encoder$add(Dense(units = 4,
+			  activation="linear",
+			  kernel_initializer=glorot_uniform(seed=1234)))
 
-	# Decoder
 	decoder <- Sequential()
-	decoder$add(Dense(units=hidden[length(hidden)-1],
-			  activation=activation[length(hidden)-1],
-			  input_shape=hidden[length(hidden)],
+	decoder$add(Dense(units = 500,
+			  input_shape = 4,
+			  activation="softsign",
 			  kernel_initializer=glorot_uniform(seed=1234)))
-	for (n in length(hidden)-1 : 1){
-		decoder$add(Dense(units=hidden[n],
-				  activation=activation[n],
-				  kernel_initializer=glorot_uniform(seed=1234)))
-	}
-	decoder$add(Dense(units=dim(x)[2],
+	decoder$add(Dense(units = 150,	
+			  activation="softsign",
 			  kernel_initializer=glorot_uniform(seed=1234)))
-
+	decoder$add(Dense(units = 150,	
+			  activation="softsign",
+			  kernel_initializer=glorot_uniform(seed=1234)))
+	decoder$add(Dense(units = dim(x)[2],
+			  activation="linear",
+			  kernel_initializer=glorot_uniform(seed=1234)))
+	
 	autoencoder <- Sequential()
 	autoencoder$add(encoder)
 	autoencoder$add(decoder)
+	
+	early_stopping_cb <- list(EarlyStopping(monitor="loss", patience=10))
 
 	keras_compile(autoencoder, loss = "mse", optimizer=Adam())
 	keras_fit(autoencoder, x, x,
-		  epochs = epochs,
+		  epochs = 250,
+		  batch_size = 256,
 		  shuffle = FALSE,
-		  verbose=1)
+		  verbose=1, 
+		  callbacks=early_stopping_cb)
 
 	return(list(encoder=encoder, decoder=decoder, autoencoder=autoencoder))
 
