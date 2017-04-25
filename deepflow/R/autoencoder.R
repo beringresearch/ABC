@@ -7,6 +7,8 @@
 autoencoder <- function(x){
 
 	x <- scale(x)
+	set.seed(1234)
+	x_noise <- x + matrix(runif(min=0, max=1, n=prod(dim(x))), ncol=ncol(x))
 	
 	encoder <- Sequential()
 	encoder$add(Dense(units = 150,
@@ -45,7 +47,7 @@ autoencoder <- function(x){
 	early_stopping_cb <- list(EarlyStopping(monitor="loss", patience=10))
 
 	keras_compile(autoencoder, loss = "mse", optimizer=Adam())
-	keras_fit(autoencoder, x, x,
+	keras_fit(autoencoder, x_noise, x,
 		  epochs = 250,
 		  batch_size = 256,
 		  shuffle = FALSE,

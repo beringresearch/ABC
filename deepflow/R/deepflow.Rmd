@@ -51,18 +51,21 @@ output$filelist <- renderDataTable({
 }, server=FALSE, selection="single")
 
 observeEvent(input$filelist_rows_selected,
-	     {ix <- input$filelist_rows_selected
-	     fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
-	     gates <- colnames(fcs)
-	     parameters$data <- asinh(data.matrix(fcs)/5)
-	     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-	     exists <- dbExistsTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
-	     if(exists){
-		     parameters$coordinates <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
-		     parameters$selection <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_gates"))[,1]
-		     updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
-	     }
-	     dbDisconnect(db)
+	     {
+		withProgress({
+			ix <- input$filelist_rows_selected
+	     		fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
+	     		gates <- colnames(fcs)
+	     		parameters$data <- asinh(data.matrix(fcs)/5)
+	     		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+	     		exists <- dbExistsTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
+	     		if(exists){
+		     		parameters$coordinates <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
+		     		parameters$selection <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_gates"))[,1]
+		     		updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
+	     		}
+	     		dbDisconnect(db)
+		}, message="Retrieving dataset...")
  
 	     updateSelectizeInput(session, 'gateSelect', choices=gates)})
 ```
@@ -87,26 +90,32 @@ observeEvent(input$run, {
 
 ```
 
-Column {data-width=500}
+Column {.tabset data-width=500}
 -----------------------------------------------------------------------
-### Representative Features
+### Scatter
 
 ```{r}
 
 # Elements
 renderPlot({
-	if (is.null(parameters$coordinates)){	
-		return()
-	}  else {	
-		selected_gate_value <- parameters$data[,input$visualiseGates]	
+	tryCatch({
+		if (is.null(parameters$coordinates)){	
+			return()
+		}  else {	
+			selected_gate_value <- parameters$data[,input$visualiseGates]	
 		
-		p <- ggplot(parameters$coordinates,
-			    aes(Deep1, Deep2, col=selected_gate_value)) + geom_point() +
-	   		scale_colour_gradientn(colours = jet.colors(7)) +
-			theme_void() + 
-			theme(legend.title=element_blank())
-		print(p)
+			withProgress({p <- ggplot(parameters$coordinates,
+			    	aes(Deep1, Deep2, col=selected_gate_value)) + geom_point(size=nrow(parameters$coordinates)* 0.000005) +
+	   			scale_colour_gradientn(colours = jet.colors(7)) +
+				theme_void() + 
+				theme(legend.title=element_blank())
+				print(p)
+				}, message = "Loading graph...")
+		}
+		}, error = function(err){
+			print("Trying load your graph...")
 	}
+	)
 })
 
 # Listeners
@@ -124,7 +133,7 @@ autoencode <- eventReactive(input$run, {
 
 		incProgress(1, detail = "Estimating embeddings.")
 		set.seed(1234)
-		v <- largeVis(tX, threads=4, verbose=TRUE, seed=123)
+		v <- largeVis(tX, threads=parallel::detectCores(), verbose=TRUE, seed=123)
 		xy <- t(v$coords)
 		coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
 		parameters$coordinates <- coordinates
@@ -142,6 +151,38 @@ autoencode <- eventReactive(input$run, {
 })
 	coordinates
 })
+
+```
+
+### Density
+
+```{r}
+# Elements
+renderPlot({
+	tryCatch({
+		if (is.null(parameters$coordinates)){	
+			return()
+		}  else {		
+
+			withProgress({p <- ggplot(parameters$coordinates,
+			    	aes(Deep1, Deep2)) +
+				stat_density2d(aes(alpha=..level.., fill=..level..),
+					       size=2, bins=10, geom="polygon") + 
+	   			scale_fill_gradient(low = "yellow", high = "red") + 
+				scale_alpha(range = c(0.00, 0.5), guide = FALSE) +
+				geom_density2d(colour="black") +
+
+				theme_void() + 
+				theme(legend.title=element_blank())
+				print(p)
+				}, message = "Loading graph...")
+		}
+		}, error = function(err){
+			print("Attempting to load your graph...")
+	}
+	)
+})
+
 
 ```
 
@@ -190,6 +231,7 @@ actionLink("deleteFiles", "x Remove all selected Files")
 
 
 observeEvent(input$deleteFiles,{
+		     withProgress({
 		     ix <- input$dbList_rows_selected
 		     files_to_remove <- as.character(parameters$files$File[ix])
 		     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
@@ -197,7 +239,9 @@ observeEvent(input$deleteFiles,{
 		     filenames <- dbListTables(db)
 		     parameters$files <-  data.frame(File=filenames)
 
-		     dbDisconnect(db)	    
+		     dbDisconnect(db)
+		     },
+		     message = "Removing dataset...") 
 })
 
 ```
@@ -210,7 +254,7 @@ observeEvent(input$deleteFiles,{
 fileInput("fileUpload", label = h4("Upload local flow cytometry datasets"))
 
 observeEvent(input$fileUpload, {
-	
+	withProgress({	
 	inFile <- input$fileUpload
 	if (is.null(inFile))
 		return(NULL)
@@ -219,12 +263,17 @@ observeEvent(input$fileUpload, {
 	keep <- sapply(fcs, class) %in% c("numeric", "integer")
 	fcs <- fcs[,keep]
 
+	model <- isofor::iForest(fcs, 100, max(10, round(0.005 * nrow(fcs))))
+	yh <- predict(model, fcs, n.cores=parallel::detectCores())
+	keep <- yh < quantile(yh, 0.95, na.rm=TRUE)
+	fcs <- fcs[keep,]
+
 	db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 	dbWriteTable(db, inFile$name, fcs, overwrite=TRUE)
 
 	filenames <- dbListTables(db)
 	parameters$files <-  data.frame(File=filenames)
-	dbDisconnect(db)
+	dbDisconnect(db)}, message= "Importing dataset...")
 })
 ```
 
