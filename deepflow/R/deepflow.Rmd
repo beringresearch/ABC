@@ -13,7 +13,6 @@ library(RSQLite)
 library(deepflow)
 library(ggplot2)
 library(data.table)
-library(isofor)
 
 options(shiny.maxRequestSize=600*1024^2) 
 sqlitePath <- "~/.deepflow/deepflow.db"
@@ -106,7 +105,7 @@ renderPlot({
 			selected_gate_value <- parameters$data[,input$visualiseGates]	
 		
 			withProgress({p <- ggplot(parameters$coordinates,
-			    	aes(Deep1, Deep2, col=selected_gate_value)) + geom_point() +
+			    	aes(Deep1, Deep2, col=selected_gate_value)) + geom_point(size=nrow(parameters$coordinates)* 0.000005) +
 	   			scale_colour_gradientn(colours = jet.colors(7)) +
 				theme_void() + 
 				theme(legend.title=element_blank())
@@ -169,7 +168,7 @@ renderPlot({
 			    	aes(Deep1, Deep2)) +
 				stat_density2d(aes(alpha=..level.., fill=..level..),
 					       size=2, bins=10, geom="polygon") + 
-	   			scale_fill_gradient(low = "blue", high = "red") + 
+	   			scale_fill_gradient(low = "yellow", high = "red") + 
 				scale_alpha(range = c(0.00, 0.5), guide = FALSE) +
 				geom_density2d(colour="black") +
 
@@ -264,9 +263,9 @@ observeEvent(input$fileUpload, {
 	keep <- sapply(fcs, class) %in% c("numeric", "integer")
 	fcs <- fcs[,keep]
 
-	model <- iForest(fcs, 100, 256)
+	model <- isofor::iForest(fcs, 100, max(10, round(0.005 * nrow(fcs))))
 	yh <- predict(model, fcs, n.cores=parallel::detectCores())
-	keep <- yh < quantile(yh, 0.95)
+	keep <- yh < quantile(yh, 0.95, na.rm=TRUE)
 	fcs <- fcs[keep,]
 
 	db <- dbConnect(RSQLite::SQLite(), sqlitePath)
