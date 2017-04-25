@@ -13,6 +13,7 @@ library(RSQLite)
 library(deepflow)
 library(ggplot2)
 library(data.table)
+library(isofor)
 
 options(shiny.maxRequestSize=600*1024^2) 
 sqlitePath <- "~/.deepflow/deepflow.db"
@@ -90,9 +91,9 @@ observeEvent(input$run, {
 
 ```
 
-Column {data-width=500}
+Column {.tabset data-width=500}
 -----------------------------------------------------------------------
-### Representative Features
+### Scatter
 
 ```{r}
 
@@ -133,7 +134,7 @@ autoencode <- eventReactive(input$run, {
 
 		incProgress(1, detail = "Estimating embeddings.")
 		set.seed(1234)
-		v <- largeVis(tX, threads=4, verbose=TRUE, seed=123)
+		v <- largeVis(tX, threads=parallel::detectCores(), verbose=TRUE, seed=123)
 		xy <- t(v$coords)
 		coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
 		parameters$coordinates <- coordinates
@@ -151,6 +152,38 @@ autoencode <- eventReactive(input$run, {
 })
 	coordinates
 })
+
+```
+
+### Density
+
+```{r}
+# Elements
+renderPlot({
+	tryCatch({
+		if (is.null(parameters$coordinates)){	
+			return()
+		}  else {		
+
+			withProgress({p <- ggplot(parameters$coordinates,
+			    	aes(Deep1, Deep2)) +
+				stat_density2d(aes(alpha=..level.., fill=..level..),
+					       size=2, bins=10, geom="polygon") + 
+	   			scale_fill_gradient(low = "blue", high = "red") + 
+				scale_alpha(range = c(0.00, 0.5), guide = FALSE) +
+				geom_density2d(colour="black") +
+
+				theme_void() + 
+				theme(legend.title=element_blank())
+				print(p)
+				}, message = "Loading graph...")
+		}
+		}, error = function(err){
+			print("Attempting to load your graph...")
+	}
+	)
+})
+
 
 ```
 
@@ -199,6 +232,7 @@ actionLink("deleteFiles", "x Remove all selected Files")
 
 
 observeEvent(input$deleteFiles,{
+		     withProgress({
 		     ix <- input$dbList_rows_selected
 		     files_to_remove <- as.character(parameters$files$File[ix])
 		     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
@@ -206,7 +240,9 @@ observeEvent(input$deleteFiles,{
 		     filenames <- dbListTables(db)
 		     parameters$files <-  data.frame(File=filenames)
 
-		     dbDisconnect(db)	    
+		     dbDisconnect(db)
+		     },
+		     message = "Removing dataset...") 
 })
 
 ```
@@ -219,7 +255,7 @@ observeEvent(input$deleteFiles,{
 fileInput("fileUpload", label = h4("Upload local flow cytometry datasets"))
 
 observeEvent(input$fileUpload, {
-	
+	withProgress({	
 	inFile <- input$fileUpload
 	if (is.null(inFile))
 		return(NULL)
@@ -228,12 +264,17 @@ observeEvent(input$fileUpload, {
 	keep <- sapply(fcs, class) %in% c("numeric", "integer")
 	fcs <- fcs[,keep]
 
+	model <- iForest(fcs, 100, 256)
+	yh <- predict(model, fcs, n.cores=parallel::detectCores())
+	keep <- yh < quantile(yh, 0.95)
+	fcs <- fcs[keep,]
+
 	db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 	dbWriteTable(db, inFile$name, fcs, overwrite=TRUE)
 
 	filenames <- dbListTables(db)
 	parameters$files <-  data.frame(File=filenames)
-	dbDisconnect(db)
+	dbDisconnect(db)}, message= "Importing dataset...")
 })
 ```
 
