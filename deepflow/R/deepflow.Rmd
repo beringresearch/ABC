@@ -51,18 +51,21 @@ output$filelist <- renderDataTable({
 }, server=FALSE, selection="single")
 
 observeEvent(input$filelist_rows_selected,
-	     {ix <- input$filelist_rows_selected
-	     fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
-	     gates <- colnames(fcs)
-	     parameters$data <- asinh(data.matrix(fcs)/5)
-	     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-	     exists <- dbExistsTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
-	     if(exists){
-		     parameters$coordinates <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
-		     parameters$selection <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_gates"))[,1]
-		     updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
-	     }
-	     dbDisconnect(db)
+	     {
+		withProgress({
+			ix <- input$filelist_rows_selected
+	     		fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
+	     		gates <- colnames(fcs)
+	     		parameters$data <- asinh(data.matrix(fcs)/5)
+	     		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+	     		exists <- dbExistsTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
+	     		if(exists){
+		     		parameters$coordinates <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
+		     		parameters$selection <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_gates"))[,1]
+		     		updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
+	     		}
+	     		dbDisconnect(db)
+		}, message="Retrieving dataset...")
  
 	     updateSelectizeInput(session, 'gateSelect', choices=gates)})
 ```
@@ -95,18 +98,24 @@ Column {data-width=500}
 
 # Elements
 renderPlot({
-	if (is.null(parameters$coordinates)){	
-		return()
-	}  else {	
-		selected_gate_value <- parameters$data[,input$visualiseGates]	
+	tryCatch({
+		if (is.null(parameters$coordinates)){	
+			return()
+		}  else {	
+			selected_gate_value <- parameters$data[,input$visualiseGates]	
 		
-		p <- ggplot(parameters$coordinates,
-			    aes(Deep1, Deep2, col=selected_gate_value)) + geom_point() +
-	   		scale_colour_gradientn(colours = jet.colors(7)) +
-			theme_void() + 
-			theme(legend.title=element_blank())
-		print(p)
+			withProgress({p <- ggplot(parameters$coordinates,
+			    	aes(Deep1, Deep2, col=selected_gate_value)) + geom_point() +
+	   			scale_colour_gradientn(colours = jet.colors(7)) +
+				theme_void() + 
+				theme(legend.title=element_blank())
+				print(p)
+				}, message = "Loading graph...")
+		}
+		}, error = function(err){
+			print("Trying load your graph...")
 	}
+	)
 })
 
 # Listeners
