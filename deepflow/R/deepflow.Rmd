@@ -54,10 +54,14 @@ observeEvent(input$filelist_rows_selected,
 	     {
 		withProgress({
 			ix <- input$filelist_rows_selected
-	     		fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
+			fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
 	     		gates <- colnames(fcs)
-	     		parameters$data <- asinh(data.matrix(fcs)/5)
-	     		db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+			parameters$data <- data.matrix(fcs)
+			if (input$asinhTransform){
+				parameters$data <- asinh(data.matrix(fcs)/5)
+			}
+			
+			db <- dbConnect(RSQLite::SQLite(), sqlitePath)
 	     		exists <- dbExistsTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
 	     		if(exists){
 		     		parameters$coordinates <- dbReadTable(db, paste0(as.character(parameters$files$File[ix]), "_coordinates"))
@@ -65,9 +69,10 @@ observeEvent(input$filelist_rows_selected,
 		     		updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection)
 	     		}
 	     		dbDisconnect(db)
-		}, message="Retrieving dataset...")
- 
-	     updateSelectizeInput(session, 'gateSelect', choices=gates)})
+
+		}, message="Retrieving gate information.")
+
+	     	updateSelectizeInput(session, 'gateSelect', choices=gates)})
 ```
 
 ### Run
@@ -84,7 +89,20 @@ actionButton("run", "Analyse", width = "100%")
 observeEvent(input$gateSelect, {parameters$selection <- input$gateSelect})
 
 observeEvent(input$run, {
-		      updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection) 
+
+		     withProgress({
+		     	ix <- input$filelist_rows_selected
+			fcs <- pull_fcs(as.character(parameters$files$File[ix]), sqlitePath)
+
+	     		parameters$data <- data.matrix(fcs)
+			if (input$asinhTransform){
+				print(input$asinhTransform)
+				parameters$data <- asinh(data.matrix(fcs)/5)
+			}
+	     		}, message="Retrieving dataset...")
+
+		     
+		     updateSelectizeInput(session, 'visualiseGates', choices=parameters$selection) 
 		      autoencode()
 })
 
@@ -105,7 +123,7 @@ renderPlot({
 			selected_gate_value <- parameters$data[,input$visualiseGates]	
 		
 			withProgress({p <- ggplot(parameters$coordinates,
-			    	aes(Deep1, Deep2, col=selected_gate_value)) + geom_point(size=nrow(parameters$coordinates)* 0.000005) +
+			    	aes(Deep1, Deep2, col=selected_gate_value)) + geom_point(size=0.75) +
 	   			scale_colour_gradientn(colours = jet.colors(7)) +
 				theme_void() + 
 				theme(legend.title=element_blank())
