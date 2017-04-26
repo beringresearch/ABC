@@ -132,7 +132,7 @@ renderPlot({
 				}, message = "Loading graph...")
 		}
 		}, error = function(err){
-			print("Trying load your graph...")
+			print("Attempting to load your graph...")
 	}
 	)
 })
@@ -302,6 +302,9 @@ observeEvent(input$fileUpload, {
 
 	filenames <- dbListTables(db)
 	parameters$files <-  data.frame(File=filenames)
+	relevant <- !(grepl("_coordinates", filenames) | grepl("_gates",filenames))
+	parameters$files <-  data.frame(File=filenames[relevant])
+
 	dbDisconnect(db)}, message= "Importing dataset...")
 })
 ```
