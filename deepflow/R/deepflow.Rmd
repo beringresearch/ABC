@@ -30,7 +30,8 @@ jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F"
 
 
 filenames <- dbListTables(db)
-parameters$files <-  data.frame(File=filenames)
+relevant <- !(grepl("_coordinates", filenames) | grepl("_gates",filenames))
+parameters$files <-  data.frame(File=filenames[relevant])
 dbDisconnect(db)
 ```
 
@@ -251,11 +252,21 @@ actionLink("deleteFiles", "x Remove all selected Files")
 observeEvent(input$deleteFiles,{
 		     withProgress({
 		     ix <- input$dbList_rows_selected
-		     files_to_remove <- as.character(parameters$files$File[ix])
+		     file_to_remove <- as.character(parameters$files$File[ix])
+		     coordinate_file <- paste0(file_to_remove, "_coordinates")
+		     gates_file <- paste0(file_to_remove, "_gates")
+
 		     db <- dbConnect(RSQLite::SQLite(), sqlitePath)
-		     dbRemoveTable(db, files_to_remove)
+		     dbRemoveTable(db, file_to_remove)
+
+		     if (dbExistsTable(db, coordinate_file) & dbExistsTable(db, gates_file)){
+			 dbRemoveTable(db, coordinate_file)
+			 dbRemoveTable(db, gates_file)
+		     }
+		    
 		     filenames <- dbListTables(db)
-		     parameters$files <-  data.frame(File=filenames)
+		     relevant <- !(grepl("_coordinates", filenames) | grepl("_gates",filenames))
+		     parameters$files <-  data.frame(File=filenames[relevant])
 
 		     dbDisconnect(db)
 		     },
