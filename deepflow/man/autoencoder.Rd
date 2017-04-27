@@ -4,17 +4,12 @@
 \alias{autoencoder}
 \title{Learn a deep autoencoder}
 \usage{
-autoencoder(x, hidden = c(150, 150, 500, 4), activation = c("softsign",
-  "softsign", "softsign", "linear"), epochs = 100)
+autoencoder(x, seed = 1234)
 }
 \arguments{
 \item{x}{Numeric expression matrix}
 
-\item{hidden}{Vector of neurons in the hidden layer(s)}
-
-\item{activation}{Vector of hidden layer activations}
-
-\item{epochs}{Number of training epochs}
+\item{seed}{Random seed integer}
 }
 \description{
 Learn a deep autoencoder
