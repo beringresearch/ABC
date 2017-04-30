@@ -10,7 +10,7 @@ Imports:
 	data.table,
 	RSQLite,
 	shiny,
-	flexdashboard
+	flexdashboard,
 	ggplot2,
 	flowPeaks
 License: What license is it under?
