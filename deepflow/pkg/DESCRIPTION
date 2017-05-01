@@ -10,8 +10,9 @@ Imports:
 	data.table,
 	RSQLite,
 	shiny,
-	flexdashboard
-	scatterD3
+	flexdashboard,
+	ggplot2,
+	flowPeaks
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true

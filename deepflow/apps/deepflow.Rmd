@@ -12,6 +12,7 @@ library(DBI)
 library(RSQLite)
 library(deepflow)
 library(ggplot2)
+library(flowPeaks)
 library(data.table)
 
 options(shiny.maxRequestSize=600*1024^2) 
@@ -175,6 +176,37 @@ autoencode <- eventReactive(input$run, {
 
 ```
 
+### Clustering
+
+```{r}
+# Elements
+renderPlot({
+	tryCatch({
+		if (is.null(parameters$coordinates)){	
+			return()
+		}  else {		
+
+			withProgress({
+				fp <- flowPeaks(parameters$coordinates)
+				cluster <- fp$peaks.cluster
+
+				p <- ggplot(parameters$coordinates,
+			    	aes(Deep1, Deep2, col=factor(cluster))) +
+				geom_point(size=0.05) +
+				theme_void() + 
+				theme(legend.title=element_blank())
+				print(p)
+				}, message = "Loading graph...")
+		}
+		}, error = function(err){
+			print("Attempting to load your graph...")
+	}
+	)
+})
+```
+
+
+
 ### Density
 
 ```{r}
@@ -203,8 +235,6 @@ renderPlot({
 	}
 	)
 })
-
-
 ```
 
 Column {data-width=250}
