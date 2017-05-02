@@ -16,7 +16,7 @@ library(flowPeaks)
 library(data.table)
 
 options(shiny.maxRequestSize=600*1024^2) 
-sqlitePath <- "~/.deepflow/deepflow.db"
+sqlitePath <- "~/deepflow.db"
 gates = vector()
 
 # Retrieve existing table names
