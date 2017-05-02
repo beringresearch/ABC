@@ -1,1 +1,1 @@
-Collection of scripts and packages, supporting computaitonal resesarch of the [Athero B Cell consortium](http://www.atherobcell.eu/)
+Collection of scripts and packages, supporting computational resesarch of the [Athero B Cell consortium](http://www.atherobcell.eu/)
