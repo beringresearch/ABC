@@ -43,7 +43,8 @@ custom_predict <- function(model, newdata){
 	predict(model, newdata)$predictions
 }
 
-# Note that we must exclude the column that contains our outcome vector from the training dataset prior to passing it to qpeak.
+# Note that we must exclude the column that contains our outcome vector
+# from the training dataset prior to passing it to qpeak.
 
 qp <- qpeak(model=model, X=iris[,-5], feature="Sepal.Length", predict=custom_predict)
 

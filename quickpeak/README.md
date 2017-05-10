@@ -38,7 +38,8 @@ custom_predict <- function(model, newdata){
     predict(model, newdata)$predictions
 }
 
-# Note that we must exclude the column that contains our outcome vector from the training dataset prior to passing it to qpeak.
+# Note that we must exclude the column that contains our outcome vector
+# from the training dataset prior to passing it to qpeak.
 
 qp <- qpeak(model=model, X=iris[,-5], feature="Sepal.Length", predict=custom_predict)
 
@@ -46,12 +47,12 @@ head(qp)
 ```
 
     ##   Sepal.Length       odds
-    ## 1          5.1 0.01832994
-    ## 2          4.9 0.01832994
-    ## 3          4.7 0.01832994
-    ## 4          4.6 0.01832994
-    ## 5          5.0 0.01832994
-    ## 6          5.4 0.01574403
+    ## 1          5.1 0.02459016
+    ## 2          4.9 0.02459016
+    ## 3          4.7 0.02459016
+    ## 4          4.6 0.02459016
+    ## 5          5.0 0.02459016
+    ## 6          5.4 0.02197241
 
 The function returns odds such that higher values indicate greater affinity towards output of interest. We can now visualise the "decision vector" in our iris model.
 
