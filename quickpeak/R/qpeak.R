@@ -34,7 +34,7 @@ qpeak <- function(model, X, feature, which.class=1L, predict, ...){
 	
 	# Remove duplicated features if predictor is a factor.
 	# Only predict using unique factor levels	
-	if (is.factor(ix))
+	if (is.factor(feature_vector))
 		x_new <- x_new[!duplicated(x_new),]
 
 	yh <- predict(model, x_new, ...)
