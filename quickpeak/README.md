@@ -11,7 +11,16 @@ A number of approaches have been introduced to help researchers peak into black 
 
 -   Individual Conditional Expectation (ICE) - [R](https://github.com/kapelner/ICEbox) code.
 
-**quickpeak** package does not attempt to replace any of these algorithms. In fact, the package offers only a very rough estimate of Partial Dependency Plots and is not suitable of rigurous analysis. The main focus of the package is on computational speed.
+**quickpeak** does not attempt to replace any of these algorithms. In fact, the package offers only a very rough estimate of Partial Dependency Plots and is not suitable of rigurous analysis. The main focus of the package is on computational speed.
+
+Approach
+========
+
+Values of each feature that is being assessed are held unchanged. For all other predictors, **quickpeak** takes the median value of continuous variables and the first level for all factors. Posterior class probabilities are then computed on this new dataset.
+
+For each observation in the feature of interest **quickpeak** reports the odds as given by:
+
+**p**/(1-**p**), where **p** is class probability vector.
 
 Installation
 ============
@@ -47,12 +56,12 @@ head(qp)
 ```
 
     ##   Sepal.Length       odds
-    ## 1          5.1 0.02459016
-    ## 2          4.9 0.02459016
-    ## 3          4.7 0.02459016
-    ## 4          4.6 0.02459016
-    ## 5          5.0 0.02459016
-    ## 6          5.4 0.02197241
+    ## 1          5.1 0.02880658
+    ## 2          4.9 0.02880658
+    ## 3          4.7 0.03092784
+    ## 4          4.6 0.03092784
+    ## 5          5.0 0.02880658
+    ## 6          5.4 0.02748523
 
 The function returns odds such that higher values indicate greater affinity towards output of interest. We can now visualise the "decision vector" in our iris model.
 
