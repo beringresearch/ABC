@@ -18,7 +18,15 @@ A number of approaches have been introduced to help researchers peak into black 
 
 * Individual Conditional Expectation (ICE) - [R](https://github.com/kapelner/ICEbox) code.
 
-__quickpeak__ package does not attempt to replace any of these algorithms. In fact, the package offers only a very rough estimate of Partial Dependency Plots and is not suitable of rigurous analysis. The main focus of the package is on computational speed.
+**quickpeak** does not attempt to replace any of these algorithms. In fact, the package offers only a very rough estimate of Partial Dependency Plots and is not suitable of rigurous analysis. The main focus of the package is on computational speed.
+
+# Approach
+
+Values of each feature that is being assessed are held unchanged. For all other predictors, **quickpeak** takes the median value of continuous variables and the first level for all factors. Posterior class probabilities are then computed on this new dataset.
+
+For each observation in the feature of interest **quickpeak** reports the odds as given by:
+
+**p**/(1-**p**), where **p** is class probability vector.
 
 # Installation
 
