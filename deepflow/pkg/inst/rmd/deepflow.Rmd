@@ -5,7 +5,6 @@ runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
-library(kerasR)
 library(largeVis)
 library(DT)
 library(DBI)
@@ -143,18 +142,15 @@ renderPlot({
 # Listeners
 
 autoencode <- eventReactive(input$run, {
-	withProgress(message = 'Learning...this may take a while', value=0, max=4, {
+	withProgress(message = 'Learning...this may take a while', value=0, max=3, {
 		ix <- input$filelist_rows_selected
 		fcs <- parameters$data
 
 		X <- fcs[, parameters$selection]	
-		incProgress(1, detail = "Running autoencoder.")
-		a <- autoencoder(X)
-		yh <- as.data.frame(keras_predict(a$encoder, scale(X)))
-		tX <- t(yh)
-
+		
 		incProgress(1, detail = "Estimating embeddings.")
 		set.seed(1234)
+		tX <- t(X)
 		v <- largeVis(tX, threads=parallel::detectCores(), verbose=TRUE, seed=123)
 		xy <- t(v$coords)
 		coordinates <- data.frame(Deep1=xy[,1], Deep2=xy[,2])
