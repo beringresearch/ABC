@@ -22,12 +22,11 @@ deepflow <- function(x=NULL, transform=FALSE, gui=TRUE, seed=1234){
 	if (transform)
 		x <- asinh(x/5)
 
-	a <- autoencoder(x)
-	yh <- as.data.frame(keras_predict(a$encoder, scale(x)))
+	#a <- autoencoder(x)
+	#yh <- as.data.frame(keras_predict(a$encoder, scale(x)))
 
-	set.seed(seed)
+	#set.seed(seed)
 	v <- largeVis(t(yh), threads=parallel::detectCores(), verbose=TRUE, seed=seed)
 	xy <- t(v$coords)
 	return(xy)
-
 }
