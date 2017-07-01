@@ -19,21 +19,21 @@ qpeak <- function(model, X, feature, which.class=1L, predict, ...){
 	ix <- match(feature, colnames(X))	
 	x_new  <- X[,-ix]
 	
-        newdata	<- data.frame(X[,ix])
+        newdata	<- data.frame(X[,ix], check.names=F)
 	colnames(newdata) <- feature
 	
 	is_factor <- sapply(x_new, class) == "factor"
 
 	if (sum(!is_factor) > 0){
-		numeric_df <- apply(data.frame(x_new[, !is_factor]), 2, replace_continuous)
+		numeric_df <- apply(data.frame(x_new[, !is_factor], check.names=F), 2, replace_continuous)
 		colnames(numeric_df) <- colnames(x_new)[!is_factor]
-		newdata <- data.frame(newdata, numeric_df)
+		newdata <- data.frame(newdata, numeric_df, check.names=F)
 	}
 
 	if (sum(is_factor) > 0){
-		factor_df <- apply(data.frame(x_new[, is_factor]), 2, replace_factor)
+		factor_df <- apply(data.frame(x_new[, is_factor], check.names=F), 2, replace_factor)
 		colnames(factor_df) <- colnames(x_new)[is_factor]
-		newdata <- data.frame(newdata, factor_df)
+		newdata <- data.frame(newdata, factor_df, check.names=F)
 	}
 
 	
@@ -54,7 +54,7 @@ qpeak <- function(model, X, feature, which.class=1L, predict, ...){
 		odds <- yh
 	}
 
-	out <- data.frame(newdata[,feature], yhat=odds)
+	out <- data.frame(newdata[,feature], yhat=odds, check.names=F)
 	colnames(out) <- c(feature, "yhat")
 
 	return(out)
