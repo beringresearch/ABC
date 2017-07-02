@@ -54,7 +54,7 @@ custom_predict <- function(model, newdata){
 # Note that we must exclude the column that contains our outcome vector
 # from the training dataset prior to passing it to qpeak.
 
-qp <- qpeak(model=model, X=iris[,-5], feature="Sepal.Length", predict=custom_predict)
+qp <- qpeak(model=model, X=iris[,-5], feature="Sepal.Length", FUN=custom_predict)
 
 head(qp)
 
@@ -64,4 +64,12 @@ The function returns odds such that higher values indicate greater affinity towa
 
 ```{r}
 plot(qp, pch=19, col=iris$Species)
+```
+
+# Integration with Shiny
+
+To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This functionality is triggered by running __qpeak__ without specifying the __feature__ argument.
+
+```r{eval=FALSE}
+qpeak(model, X, FUN=predict, type="prob")
 ```
