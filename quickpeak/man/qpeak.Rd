@@ -4,7 +4,7 @@
 \alias{qpeak}
 \title{Peak into contribution of any variable to a predictive model}
 \usage{
-qpeak(model, X, feature, which.class = 1L, predict, ...)
+qpeak(model, X, feature = NULL, which.class = 1L, FUN = predict, ...)
 }
 \arguments{
 \item{model}{Trained predictive model.}
@@ -18,9 +18,9 @@ contain the column which is predicted by the model.}
 probabilities to use as the "focus" class. Default is to use
     the first class. Only used for classification problems.}
 
-\item{predict}{Custom predict function that obtaines class probabilities from model}
+\item{FUN}{Custom predict function that obtaines class probabilities from model}
 
-\item{...}{Optional parameters to the cutsom predict function.}
+\item{...}{Optional parameters to the custom predict function.}
 }
 \description{
 Peak into contribution of any variable to a predictive model

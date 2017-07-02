@@ -7,11 +7,13 @@
 #' @param which.class   Integer specifying which column of the matrix of predicted
 #'			probabilities to use as the "focus" class. Default is to use
 #' 			the first class. Only used for classification problems.
-#' @param predict 	Custom predict function that obtaines class probabilities from model
-#' @param ... 		Optional parameters to the cutsom predict function.
+#' @param FUN	 	Custom predict function that obtaines class probabilities from model
+#' @param ... 		Optional parameters to the custom predict function.
 #' @export
 
-qpeak <- function(model, X, feature, which.class=1L, predict, ...){
+qpeak <- function(model, X, feature=NULL, which.class=1L, FUN=predict, ...){
+	
+	if (is.null(feature)) qpeak_shiny(model, X, FUN,...)
 
 	if (! feature %in% colnames(X))
 		stop(paste0(feature, " not found in column names of the training set."))
@@ -42,7 +44,7 @@ qpeak <- function(model, X, feature, which.class=1L, predict, ...){
 	if (is.factor(newdata[,feature]))
 		newdata <- newdata[!duplicated(newdata),]
 
-	yh <- predict(model, newdata, ...)
+	yh <- FUN(model, newdata, ...)
 	
 	if (!is.numeric(yh))
 		stop("predict must return numeric matrix of class probabilities.")
