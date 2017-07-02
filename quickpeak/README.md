@@ -37,18 +37,7 @@ Example
 ``` r
 library(quickpeak)
 library(ranger)
-```
 
-    ## Warning: package 'ranger' was built under R version 3.3.2
-
-    ## 
-    ## Attaching package: 'ranger'
-
-    ## The following object is masked from 'package:randomForest':
-    ## 
-    ##     importance
-
-``` r
 model <- ranger(data=iris, dependent.variable.name="Species", probability=TRUE)
 
 # Ranger's implementation of the predict function is not standard.
@@ -66,13 +55,13 @@ qp <- qpeak(model=model, X=iris[,-5], feature="Sepal.Length", FUN=custom_predict
 head(qp)
 ```
 
-    ##   Sepal.Length        yhat
-    ## 1          5.1 0.009489198
-    ## 2          4.9 0.009489198
-    ## 3          4.7 0.009489198
-    ## 4          4.6 0.009489198
-    ## 5          5.0 0.009489198
-    ## 6          5.4 0.009489198
+    ##   Sepal.Length       yhat
+    ## 1          5.1 0.02219626
+    ## 2          4.9 0.02219626
+    ## 3          4.7 0.02219626
+    ## 4          4.6 0.02219626
+    ## 5          5.0 0.02219626
+    ## 6          5.4 0.01933088
 
 The function returns odds such that higher values indicate greater affinity towards output of interest. We can now visualise the "decision vector" in our iris model.
 
@@ -85,7 +74,7 @@ plot(qp, pch=19, col=iris$Species)
 Integration with Shiny
 ======================
 
-To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This feature is triggered by running **qpeak** without specifying the **feature** argument.
+To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This functionality is triggered by running **qpeak** without specifying the **feature** argument.
 
 ``` r{eval=false}
 qpeak(model, X, FUN=predict, type="prob")

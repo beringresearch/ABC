@@ -68,7 +68,7 @@ plot(qp, pch=19, col=iris$Species)
 
 # Integration with Shiny
 
-To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This feature is triggered by running __qpeak__ without specifying the __feature__ argument.
+To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This functionality is triggered by running __qpeak__ without specifying the __feature__ argument.
 
 ```r{eval=FALSE}
 qpeak(model, X, FUN=predict, type="prob")
