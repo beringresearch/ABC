@@ -4,7 +4,27 @@
 \alias{cytorf}
 \title{Perform unsupervised clusering using random forest}
 \usage{
-cytorf(X, num.trees = 50, scale = 5, seed = 1234)
+cytorf(X, Y = NULL, channels = NULL, num.trees = 50, scale = 5,
+  seed = 1234, verbose = FALSE)
+}
+\arguments{
+\item{X}{a data matrix for the flow cytometry data, it needs to have
+at least two columns.}
+
+\item{Y}{a factor vector of phenotypes (optional).}
+
+\item{channels}{a vector of two channel names or their corresponding indices.
+When it is left unspecified, all the variables will be included
+in clustering.}
+
+\item{num.trees}{number of trees to grow in a Random Forest.}
+
+\item{scale}{cluster granularity parameter. Lower and higher values result in
+smaller or larger number of clusters respectively.}
+
+\item{seed}{random seed that controls clustering reproducibility}
+
+\item{verbose}{boolean level of verbosity (default: FALSE)}
 }
 \description{
 Perform unsupervised clusering using random forest
