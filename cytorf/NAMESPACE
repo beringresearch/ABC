@@ -2,6 +2,7 @@
 
 export(cytorf)
 export(cytorf.ui)
+import(flowCore)
 import(ggplot2)
 import(largeVis)
 import(ranger)
