@@ -2,9 +2,10 @@
 
 export(cytorf)
 export(cytorf.ui)
+import(RColorBrewer)
+import(Rtsne)
 import(flowCore)
 import(ggplot2)
-import(largeVis)
 import(ranger)
 import(shiny)
 import(shinyFiles)

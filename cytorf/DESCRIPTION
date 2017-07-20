@@ -7,9 +7,10 @@ Depends: R (>= 3.3.1)
 Imports:
 	Rcpp,
 	ranger,
-	largeVis,
+	Rtsne,
 	igraph,
 	ggplot2,
+	RColorBrewer,
 	shiny,
 	shinyFiles,
 	flowCore
