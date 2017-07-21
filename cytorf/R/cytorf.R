@@ -56,7 +56,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	pr <- proximity/(2*num.trees)
 	g <- graph_from_adjacency_matrix(pr^scale, mode="undirected", weighted=T, diag=F)
 	cl <- cluster_louvain(g)
-	groups <- membership(cl)
+	groups <- as.numeric(membership(cl))
 
 	return(groups)
 }
