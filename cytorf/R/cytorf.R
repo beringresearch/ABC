@@ -37,6 +37,8 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 
 		train <- as.data.frame(rbind(X, synth_X))
 		train$Y <- as.factor(c(rep(1, nrow(X)), rep(2, nrow(synth_X))))
+	}else{
+		X <- train
 	}
 	
 	if (verbose) cat("Building Random Forest model...\n")
@@ -50,7 +52,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	proximity <- proximity_matrix(terminal_nodes)
 
 	# Louvain clustering
-	if (verbose) cat("Clustering objects...")
+	if (verbose) cat("Clustering objects...\n")
 	pr <- proximity/(2*num.trees)
 	g <- graph_from_adjacency_matrix(pr^scale, mode="undirected", weighted=T, diag=F)
 	cl <- cluster_louvain(g)
