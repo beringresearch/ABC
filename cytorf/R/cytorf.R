@@ -25,6 +25,8 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 
 	if (ncol(X) < 2) stop("Input matrix should have at least two columns.")
 
+	if (is.null(colnames(X))) stop("X values must contain unique column names.")
+
 	train <- data.frame(X)
 	train$Y <- Y
 
