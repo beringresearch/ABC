@@ -25,6 +25,8 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 
 	if (ncol(X) < 2) stop("Input matrix should have at least two columns.")
 
+	if (is.null(colnames(X))) stop("X values must contain unique column names.")
+
 	train <- data.frame(X)
 	train$Y <- Y
 
@@ -56,7 +58,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	pr <- proximity/(2*num.trees)
 	g <- graph_from_adjacency_matrix(pr^scale, mode="undirected", weighted=T, diag=F)
 	cl <- cluster_louvain(g)
-	groups <- membership(cl)
+	groups <- as.numeric(membership(cl))
 
 	return(groups)
 }
