@@ -73,7 +73,7 @@ cytorf.ui <- function(){
 								hr()
 								),
 						       tabPanel("Results",
-								br(),
+								h4("Gate explorer"),
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
 
 								verbatimTextOutput("cluster_info",
@@ -94,7 +94,9 @@ cytorf.ui <- function(){
 								plotOutput("plot_expression",
 									   click = "plot_click")
 								),
-								hr()	
+								hr(),
+								h4("Median channel expression"),
+								plotOutput("plot_heatmap")	
 								),
 
 						       tabPanel("Help"))
@@ -258,6 +260,23 @@ cytorf.ui <- function(){
 				data.frame(np, Cluster=cluster, Members=members)
 			}
 		})
+
+		# Render marker heatmap
+		output$plot_heatmap <- renderPlot({
+			jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
+							 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+			summ <- aggregate(global$X, by=list(global$g), FUN=median)
+			hc <- hclust(dist(t(summ[,-1])))
+			data <- summ[,-1]
+			data <- data[,hc$order]
+			data$Gate <- as.factor(summ$Group.1)
+			df <- reshape2::melt(data, id.vars="Gate",)
+			ggplot(df, aes(x=Gate, y=variable, fill=value)) +
+				geom_tile() +
+				scale_fill_gradientn(colours = jet.colors(7), name="") +
+				ylab("")
+		})
 	
 	})	
 
@@ -266,6 +285,6 @@ cytorf.ui <- function(){
 
 # Close APP	
 )
-	runApp(app)
+	runApp(app, port=4321)
 
 }
