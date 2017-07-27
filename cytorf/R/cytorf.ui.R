@@ -24,11 +24,7 @@ cytorf.ui <- function(){
 					      numericInput("scale", "Cluster Granularity",
 							   7, min=1, max=25),
 					      numericInput("seed", "Random Seed",
-							   12345, min=1, max=Inf),
-
-					      hr(),
-					      htmlOutput("visualise_channel")
-
+							   12345, min=1, max=Inf)
 					      ),
 
 				 mainPanel(width = 9,
@@ -74,28 +70,37 @@ cytorf.ui <- function(){
 								),
 						       tabPanel("Results",
 								h4("Gate explorer"),
-								div(style="display: inline-block;vertical-align:top; width: 500px;",
+								helpText("Click on individual points to further explore unique gates."),
+								#div(style="display: inline-block;vertical-align:top; width: 500px;",
 
-								verbatimTextOutput("cluster_info",
-										   placeholder = TRUE)),
-								div(style="display: inline-block;vertical-align:top; width: 500px;",
+								#verbatimTextOutput("cluster_info",
+								#		   placeholder = TRUE)),
+								#div(style="display: inline-block;vertical-align:top; width: 500px;",
 
-								verbatimTextOutput("analysis_summary",
-										   placeholder = TRUE)),
+								#verbatimTextOutput("analysis_summary",
+								#		   placeholder = TRUE)),
 
 
-								br(),	
+								#br(),	
 
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
 								plotOutput("plot_cluster",
 									   click = "plot_click")
 								),
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
-								plotOutput("plot_expression",
-									   click = "plot_click")
+								plotOutput("plot_density")
 								),
+
 								hr(),
-								h4("Median channel expression"),
+								h4("Channel expression levels"),
+								div(style="display: inline-block;vertical-align:top; width: 500px;",
+								    plotOutput("plot_expression")),
+								div(style="display: inline-block;vertical-align:top; width: 500px;",
+								    htmlOutput("visualise_channel")),
+
+								hr(),
+								h4("Mean channel expressions"),
+								helpText("Mean marker expression is calculated by aggregating channel values across all CytoRF gates."),
 								plotOutput("plot_heatmap")	
 								),
 
@@ -209,7 +214,31 @@ cytorf.ui <- function(){
 			xlab(colnames(global$coords)[1]) +
 			ylab(colnames(global$coords)[2]) +
 			scale_color_manual(values = getPalette(colorCount)) +
-			theme(legend.position="none")
+			theme(legend.position="none") + theme_minimal()
+		})
+
+		# Render Channel Density plot
+		output$plot_density <- renderPlot({
+			jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
+							 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+			ix <- input$plot_click	
+			
+			np <- data.frame(nearPoints(as.data.frame(global$coords),
+				   input$plot_click,
+				   xvar = colnames(global$coords)[1],
+				   yvar = colnames(global$coords)[2],
+				   threshold = 10, maxpoints = 1,
+				   addDist = FALSE))	
+			ix <- as.numeric(rownames(np))	
+			
+			gate <- global$g[ix]
+			ix <- global$g == gate
+			df <- reshape2::melt(global$X[ix,])
+			ggplot(df, aes(x=Var2, y=value, fill=value)) + geom_boxplot() +
+				scale_fill_gradientn(colours = jet.colors(7), name="Expression") +
+				xlab("") + ylab("Channel expression level") + coord_flip() +
+						theme_minimal()	
+
 		})
 		
 		# Render Expression Plot
@@ -224,8 +253,9 @@ cytorf.ui <- function(){
 			ggplot(df, aes(x=df[,1], y=df[,2], color=selected_gate_value)) + geom_point() +
 			xlab(colnames(global$coords)[1]) +
 			ylab(colnames(global$coords)[2]) +
-			scale_colour_gradientn(colours = jet.colors(7), name="Expression")	
-		})
+			scale_colour_gradientn(colours = jet.colors(7), name="Expression") +
+			theme_minimal()	
+		}, width=575)
 
 		# Render Cluster Explorer
 		output$cluster_explorer <- renderPlot({
@@ -238,7 +268,7 @@ cytorf.ui <- function(){
 			xlab(colnames(global$coords)[1]) +
 			ylab(colnames(global$coords)[2]) +
 			scale_color_manual(values = getPalette(colorCount)) +
-			theme(legend.position="none")
+			theme(legend.position="none") + theme_minimal()
 			
 		})
 		
@@ -266,7 +296,7 @@ cytorf.ui <- function(){
 			jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
 							 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
 
-			summ <- aggregate(global$X, by=list(global$g), FUN=median)
+			summ <- aggregate(global$X, by=list(global$g), FUN=mean)
 			hc <- hclust(dist(t(summ[,-1])))
 			data <- summ[,-1]
 			data <- data[,hc$order]
@@ -275,8 +305,8 @@ cytorf.ui <- function(){
 			ggplot(df, aes(x=Gate, y=variable, fill=value)) +
 				geom_tile() +
 				scale_fill_gradientn(colours = jet.colors(7), name="") +
-				ylab("")
-		})
+				ylab("") + theme_minimal()
+		}, height=600)
 	
 	})	
 
