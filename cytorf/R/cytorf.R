@@ -60,5 +60,38 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	cl <- cluster_louvain(g)
 	groups <- as.numeric(membership(cl))
 
+	res <- structure(list(labels=groups,
+			      model=model,
+			      options=list(channels=channels, num.trees=num.trees,
+					   scale=scale, seed=seed)), class="cytorf")
+
+	return(res)
+}
+
+#' Predict cytorf clusters from a supervised model
+#'
+#' @param model 	cytorf model
+#' @param newdata 	data.frame object
+#' @param verbose 	boolean control of verbosity levels. Default is FALSE.
+#' @import ranger igraph
+#' @export
+
+predict.cytorf <- function(model, newdata, verbose=FALSE){
+	X <- data.frame(newdata)
+	X$Y <- rep(0, nrow(newdata))
+	num.trees <- model$options$num.trees
+	scale <- model$options$scale
+
+	if (verbose) cat("Calculating proximity matrix...\n")
+	terminal_nodes <- predict(model$model, X, type="terminalNodes")$predictions
+	proximity <- proximity_matrix(terminal_nodes)
+	
+	# Louvain clustering
+	if (verbose) cat("Clustering objects...\n")
+	pr <- proximity/(2*num.trees)
+	g <- graph_from_adjacency_matrix(pr^scale, mode="undirected", weighted=T, diag=F)
+	cl <- cluster_louvain(g)
+	groups <- as.numeric(membership(cl))
+
 	return(groups)
 }
