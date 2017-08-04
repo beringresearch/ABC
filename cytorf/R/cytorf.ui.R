@@ -1,11 +1,12 @@
 #' Shiny interface to CytoRF clustering algorithm
 #'
+#' @param port      Numeric port number for shiny server. Defaults to 1234
 #' @import ggplot2
 #' @import Rtsne
 #' @import shiny shinyFiles flowCore RColorBrewer
 #' @export
 
-cytorf.ui <- function(){	
+cytorf.ui <- function(port = 1234){	
 
 	global = reactiveValues(fcs_raw = NULL,
 				X = NULL,
@@ -186,8 +187,7 @@ cytorf.ui <- function(){
 				     global$X <- fsApply(fcs, exprs)
 				     global$X <- global$X[!duplicated(global$X),]
 				     global$g <- cytorf(global$X, num.trees=input$ntrees,
-						 scale=input$scale,
-						 seed=input$seed)
+						                    scale=input$scale, seed=input$seed)$labels
 				     nclusters <- length(unique(global$g))
 				     echo <- paste0("Number of clusters: ", nclusters, "\n",
 						    "Number of events: ", nrow(global$X))
@@ -315,6 +315,6 @@ cytorf.ui <- function(){
 
 # Close APP	
 )
-	runApp(app, port=4321)
+	runApp(app, port=port)
 
 }

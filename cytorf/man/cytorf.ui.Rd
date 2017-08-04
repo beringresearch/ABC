@@ -4,7 +4,10 @@
 \alias{cytorf.ui}
 \title{Shiny interface to CytoRF clustering algorithm}
 \usage{
-cytorf.ui()
+cytorf.ui(port = 1234)
+}
+\arguments{
+\item{port}{Numeric port number for shiny server. Defaults to 1234}
 }
 \description{
 Shiny interface to CytoRF clustering algorithm
