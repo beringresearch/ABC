@@ -8,8 +8,11 @@
 
 cytorf.ui <- function(port = 1234){	
 
-	global = reactiveValues(fcs_raw = NULL,
+	global = reactiveValues(
+        file_names = NULL,
+        fcs_raw = NULL,
 				X = NULL,
+        Y = NULL,
 				g = NULL,
 				coords = NULL)
 
@@ -38,28 +41,38 @@ cytorf.ui <- function(port = 1234){
 								shinyFilesButton("files",
 							     		label="Chose Project Files",
 							     		title="Select Project Files",	
-							     		multiple=TRUE)
+							     		multiple=TRUE),
+
+                br(),
+                br(),
+                htmlOutput("file_list")
 								),
-					      			
+
+                					      			
 								div(style="display: inline-block;vertical-align:top; width: 200px;",
 								helpText("Click on the button to navigate to a folder that contains your FCS files. Select one or more files to begin your analysis.")
 								),
-
+                
+                hr(),
+                h4("Step 1a (Optional): Assign Samples into Groups"),
+                div(style="display: inline-block;vertical-align:top; width: 700px;",
+                  tags$table(class="sampleGroupTable",
+                             tagList(
+                             tags$tr(uiOutput("sampleGroupNameList")) 
+                             ))),
+                div(style="display: inline-block;vertical-align:top; width: 200px;",
+								    helpText("Optionally, assign each file from Step 1 into a group to improve results of automated cluster detection.")),
 
 								hr(),
-								h4("Step 2: Select Channels of Interest"),
-								div(style="display: inline-block;vertical-align:top; width: 350px;",
-								    htmlOutput("file_list")
-								),
-								div(style="display: inline-block;vertical-align:top; width: 350px;",
+								h4("Step 2: Select Channels of Interest"),	
+								div(style="display: inline-block;vertical-align:top; width: 700px;",
 								    htmlOutput("channel_list")
 								),
 								div(style="display: inline-block;vertical-align:top; width: 200px;",
 								    helpText("Select two or more items from the Available Channels list. Selected channels will be used to cluster your FCS data and overlay it with relevant expression profiles.")
 								),
-
-								
-								hr(),
+                
+                hr(),
 								h4("Step 3: Cluster"),
 								div(style="display: inline-block;vertical-align:top; width: 700px;",
 								    htmlOutput("run_analysis_subsample"),
@@ -71,23 +84,13 @@ cytorf.ui <- function(port = 1234){
 								),
 						       tabPanel("Results",
 								h4("Gate explorer"),
-								helpText("Click on individual points to further explore unique gates."),
-								#div(style="display: inline-block;vertical-align:top; width: 500px;",
-
-								#verbatimTextOutput("cluster_info",
-								#		   placeholder = TRUE)),
-								#div(style="display: inline-block;vertical-align:top; width: 500px;",
-
-								#verbatimTextOutput("analysis_summary",
-								#		   placeholder = TRUE)),
-
-
-								#br(),	
+								helpText("Click on individual points or select a gate from the dropdown below to further explore clusters."),
+                
+                htmlOutput("select_gate"),
 
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
-								plotOutput("plot_cluster",
-									   click = "plot_click")
-								),
+                
+  							plotOutput("plot_cluster", click = "plot_click")),
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
 								plotOutput("plot_density")
 								),
@@ -127,15 +130,18 @@ cytorf.ui <- function(port = 1234){
 							     truncate_max_range = FALSE)
 
 				     channels <- global$fcs_raw@colnames
+             global$file_names <- fcs_file$name
 
 				     output$file_list <- renderUI({
-					     selectInput("file_list",
-							 "Project Files",
-							 choices = fcs_file$name,
-							 size = 15,
-							 selected = NULL,
-							 multiple = TRUE,
-							 selectize = FALSE)})
+               return(tagList(
+                 lapply(as.list(global$file_names),
+                   function(x){
+                     tags$tr(
+                       tags$td(x)
+                     )
+                   })
+               ))
+             })
 
 				     output$channel_list <- renderUI({
 					     selectInput("channel_list",
@@ -145,8 +151,6 @@ cytorf.ui <- function(port = 1234){
 							 selected = NULL,
 							 multiple = TRUE,
 							 selectize = FALSE)})
-
-
 
 				     observeEvent(input$channel_list, {
 							  output$run_analysis_subsample <- renderUI({
@@ -164,11 +168,30 @@ cytorf.ui <- function(port = 1234){
 									      multiple = FALSE)})
 					})
 				})
+    
+    # Sample Group Assigment
+    output$sampleGroupNameList = renderUI({
+      return(tagList(
+                     lapply(as.list(global$file_names),
+                            function(x) {
+                              tags$tr(
+                                tags$td(
+                                  textInput(inputId=paste0(x, "_group"), label=x)
+                                )
+                              )
+                            }
+                           )
+                     )
+            )
+    })
 
 		# Run Analysis
 		observeEvent(input$run, {
-				     fcs <- fsApply(global$fcs_raw, function(x, cofactor=5){
+             
+             group.input.id <- names(input)[which(regexpr(text=names(input), pattern="_group")>0)]
+             group <- unlist(lapply(group.input.id, function(x) input[[x]]))   
 
+				     fcs <- fsApply(global$fcs_raw, function(x, cofactor=5){
 							    set.seed(input$seed)
 							    nevents <- input$nevents
 							    if (nevents > nrow(x)) nevents <- nrow(x)
@@ -179,15 +202,24 @@ cytorf.ui <- function(port = 1234){
 							    
 							    expr <- exprs(x)
 							    expr <- asinh(expr[subsample,] / cofactor)
-							    expr <- expr[,input$channel_list] 
+							    expr <- expr[, input$channel_list] 
 
 							    exprs(x) <- expr
 							    x})
 
 				     global$X <- fsApply(fcs, exprs)
-				     global$X <- global$X[!duplicated(global$X),]
-				     global$g <- cytorf(global$X, num.trees=input$ntrees,
-						                    scale=input$scale, seed=input$seed)$labels
+             if(!any(sapply(group, function(x) x ==""))){
+               global$Y <- as.factor(rep(group, unlist(fsApply(fcs, nrow))))
+             }
+
+             duplicates <- duplicated(global$X)
+             global$X <- global$X[!duplicates,]
+             global$Y <- global$Y[!duplicates]
+
+ 				     global$g <- cytorf(X = global$X,
+                                Y = global$Y,
+                                num.trees = input$ntrees,
+						                    scale = input$scale, seed=input$seed)$labels
 				     nclusters <- length(unique(global$g))
 				     echo <- paste0("Number of clusters: ", nclusters, "\n",
 						    "Number of events: ", nrow(global$X))
@@ -214,32 +246,74 @@ cytorf.ui <- function(port = 1234){
 			xlab(colnames(global$coords)[1]) +
 			ylab(colnames(global$coords)[2]) +
 			scale_color_manual(values = getPalette(colorCount)) +
-			theme(legend.position="none") + theme_minimal()
+			theme(legend.position="none") + theme_minimal() + 
+      ggtitle("CytoRF Gates")
 		})
 
+    # Render Select Gate
+    output$select_gate <- renderUI({
+      selectInput("select_gate",
+									"Visualise Gates",
+									choices = global$g,
+									multiple = FALSE)
+    })
+
+    observeEvent(input$select_gate, {
+      selection <- as.numeric(input$select_gate)
+      ix <- global$g == selection
+
+      output$plot_density <- renderPlot({
+        g <- ggplot()
+        if(is.null(global$Y)){
+          df <- reshape2::melt(global$X[ix,])
+          g <- g + geom_boxplot(data = df, aes(x=Var2, y=value), outlier.size = 0.1)
+        } else{
+          df <- data.frame(global$X, Group=global$Y)
+          df <- df[ix,]
+          df <- reshape2::melt(df, id.vars="Group")
+          g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group),
+                                outlier.size = 0.1)
+        }
+        g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
+						 theme_minimal() + ggtitle(paste0("Gate: ", selection))	
+        g
+        }
+        )
+    })
+
 		# Render Channel Density plot
-		output$plot_density <- renderPlot({
-			jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
-							 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
-			ix <- input$plot_click	
+    observeEvent(input$plot_click, {
+		  output$plot_density <- renderPlot({	
+			  ix <- input$plot_click	
 			
-			np <- data.frame(nearPoints(as.data.frame(global$coords),
+			  np <- data.frame(nearPoints(as.data.frame(global$coords),
 				   input$plot_click,
 				   xvar = colnames(global$coords)[1],
 				   yvar = colnames(global$coords)[2],
 				   threshold = 10, maxpoints = 1,
 				   addDist = FALSE))	
-			ix <- as.numeric(rownames(np))	
+			  ix <- as.numeric(rownames(np))	
 			
-			gate <- global$g[ix]
-			ix <- global$g == gate
-			df <- reshape2::melt(global$X[ix,])
-			ggplot(df, aes(x=Var2, y=value, fill=value)) + geom_boxplot() +
-				scale_fill_gradientn(colours = jet.colors(7), name="Expression") +
-				xlab("") + ylab("Channel expression level") + coord_flip() +
-						theme_minimal()	
-
-		})
+			  gate <- global$g[ix]
+			  ix <- global$g == gate 
+      
+			  g <- ggplot()
+        if(is.null(global$Y)){
+          df <- reshape2::melt(global$X[ix,])
+          g <- g + geom_boxplot(data = df, aes(x=Var2, y=value), outlier.size = 0.1)
+        } else{
+          df <- data.frame(global$X, Group=global$Y)
+          df <- df[ix,]
+          df <- reshape2::melt(df, id.vars="Group")
+          head(df)
+          g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group), outlier.size = 0.1)
+        }
+        g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
+						  theme_minimal()	+ ggtitle(paste0("Gate: ", gate))
+        g
+		  })
+    }
+    )
 		
 		# Render Expression Plot
 		output$plot_expression <- renderPlot({
