@@ -103,9 +103,9 @@ cytorf.ui <- function(port = 1234){
 								    htmlOutput("visualise_channel")),
 
 								hr(),
-								h4("Mean channel expressions"),
-								helpText("Mean marker expression is calculated by aggregating channel values across all CytoRF gates."),
-								plotOutput("plot_heatmap")	
+                h4("Predictive Gate Importances"),
+                helpText("In cases where sample descriptions are supplied, CytoRF will automatically identify cellular populations that predict outcome of interest."),
+                plotOutput("gate_predictions")
 								),
 
 						       tabPanel("Help"))
@@ -188,7 +188,8 @@ cytorf.ui <- function(port = 1234){
 		# Run Analysis
 		observeEvent(input$run, {
              
-             group.input.id <- names(input)[which(regexpr(text=names(input), pattern="_group")>0)]
+             group.input.id <- names(input)[which(regexpr(text=names(input),
+                                                          pattern="_group")>0)]
              group <- unlist(lapply(group.input.id, function(x) input[[x]]))   
 
 				     fcs <- fsApply(global$fcs_raw, function(x, cofactor=5){
@@ -221,6 +222,7 @@ cytorf.ui <- function(port = 1234){
                                 num.trees = input$ntrees,
 						                    scale = input$scale, seed=input$seed)$labels
 				     nclusters <- length(unique(global$g))
+
 				     echo <- paste0("Number of clusters: ", nclusters, "\n",
 						    "Number of events: ", nrow(global$X))
 
@@ -233,7 +235,29 @@ cytorf.ui <- function(port = 1234){
 					     	global$coords <- tsne$Y[,1:2]
 					     	colnames(global$coords) <- c("viSNE.1", "viSNE.2")
 				     }
-				     
+	  
+    # Gate-based sample classification
+          
+      output$gate_predictions <- renderPlot({
+        if (!is.null(global$Y)){
+      
+        x <- data.frame(Gate = as.factor(global$g), Y=global$Y)
+        x <- model.matrix(Y~.-1, data=x)
+        x <- data.frame(x, Y=global$Y)
+        
+        model <- ranger::ranger(data=x, dependent.variable.name="Y",
+                              importance="impurity")
+
+        imp <- ranger::importance(model)
+        imp <- data.frame(Group=names(imp), Importance=imp)
+        print(head(imp)) 
+				
+        ggplot(imp, aes(x=Group, y=Importance)) + geom_bar(stat="identity") +
+          xlab("") +
+          theme_minimal()
+       
+        }
+      })
 		
 		# Render Clustering Plot
 		output$plot_cluster <- renderPlot({
@@ -306,7 +330,8 @@ cytorf.ui <- function(port = 1234){
           df <- df[ix,]
           df <- reshape2::melt(df, id.vars="Group")
           head(df)
-          g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group), outlier.size = 0.1)
+          g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group),
+                                outlier.size = 0.1)
         }
         g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
 						  theme_minimal()	+ ggtitle(paste0("Gate: ", gate))
