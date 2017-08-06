@@ -14,7 +14,8 @@ cytorf.ui <- function(port = 1234){
 				X = NULL,
         Y = NULL,
 				g = NULL,
-				coords = NULL)
+				coords = NULL,
+        selection = NULL)
 
 	app <- list(	
 		    ui=fluidPage(
@@ -82,19 +83,26 @@ cytorf.ui <- function(port = 1234){
 
 								hr()
 								),
-						       tabPanel("Results",
+						    
+                tabPanel("Results",
 								h4("Gate explorer"),
 								helpText("Click on individual points or select a gate from the dropdown below to further explore clusters."),
-                
+                br(), 
                 htmlOutput("select_gate"),
-
-								div(style="display: inline-block;vertical-align:top; width: 500px;",
                 
+								div(style="display: inline-block;vertical-align:top; width: 500px;", 
   							plotOutput("plot_cluster", click = "plot_click")),
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
-								plotOutput("plot_density")
-								),
+								plotOutput("plot_density")),
+                
+                br(), 
+                br(),
+                div(style="display: inline-block;vertical-align:top; width: 300px;",
+                htmlOutput("export_selected_gate_fcs")), 
+                div(style="display: inline-block;vertical-align:top; width: 200px;",
+                htmlOutput("export_all_gates_fcs")),
 
+                br(),
 								hr(),
 								h4("Channel expression levels"),
 								div(style="display: inline-block;vertical-align:top; width: 500px;",
@@ -187,7 +195,7 @@ cytorf.ui <- function(port = 1234){
 
 		# Run Analysis
 		observeEvent(input$run, {
-             
+             cat("\n--CytoRF--\n") 
              group.input.id <- names(input)[which(regexpr(text=names(input),
                                                           pattern="_group")>0)]
              group <- unlist(lapply(group.input.id, function(x) input[[x]]))   
@@ -220,7 +228,9 @@ cytorf.ui <- function(port = 1234){
  				     global$g <- cytorf(X = global$X,
                                 Y = global$Y,
                                 num.trees = input$ntrees,
-						                    scale = input$scale, seed=input$seed)$labels
+						                    scale = input$scale,
+                                seed=input$seed,
+                                verbose=TRUE)$labels
 				     nclusters <- length(unique(global$g))
 
 				     echo <- paste0("Number of clusters: ", nclusters, "\n",
@@ -228,6 +238,7 @@ cytorf.ui <- function(port = 1234){
 
 				     output$analysis_summary <- renderText({echo})
 				     
+             cat("Generating coordinates...")
 				     if (ncol(global$X) == 2){
 					     	global$coords <- global$X
 				     } else {
@@ -235,9 +246,10 @@ cytorf.ui <- function(port = 1234){
 					     	global$coords <- tsne$Y[,1:2]
 					     	colnames(global$coords) <- c("viSNE.1", "viSNE.2")
 				     }
+
+             cat("\n--FINISHED--\n")
 	  
-    # Gate-based sample classification
-          
+    # Gate-based sample classification       
       output$gate_predictions <- renderPlot({
         if (!is.null(global$Y)){
       
@@ -252,9 +264,11 @@ cytorf.ui <- function(port = 1234){
         imp <- data.frame(Group=names(imp), Importance=imp)
         print(head(imp)) 
 				
-        ggplot(imp, aes(x=Group, y=Importance)) + geom_bar(stat="identity") +
+        suppressWarnings(
+          ggplot(imp, aes(x=Group, y=Importance)) + geom_bar(stat="identity") +
           xlab("") +
           theme_minimal()
+        )
        
         }
       })
@@ -266,12 +280,15 @@ cytorf.ui <- function(port = 1234){
 	
 			df <- data.frame(global$coords)
 			df$Gates <- as.factor(global$g)
-			ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
-			xlab(colnames(global$coords)[1]) +
-			ylab(colnames(global$coords)[2]) +
-			scale_color_manual(values = getPalette(colorCount)) +
-			theme(legend.position="none") + theme_minimal() + 
-      ggtitle("CytoRF Gates")
+
+			suppressWarnings(
+        ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
+			  xlab(colnames(global$coords)[1]) +
+			  ylab(colnames(global$coords)[2]) +
+			  scale_color_manual(values = getPalette(colorCount)) +
+			  theme(legend.position="none") + theme_minimal() + 
+        ggtitle("CytoRF Gates")
+      )
 		})
 
     # Render Select Gate
@@ -285,6 +302,7 @@ cytorf.ui <- function(port = 1234){
     observeEvent(input$select_gate, {
       selection <- as.numeric(input$select_gate)
       ix <- global$g == selection
+      global$selection <- selection
 
       output$plot_density <- renderPlot({
         g <- ggplot()
@@ -298,12 +316,50 @@ cytorf.ui <- function(port = 1234){
           g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group),
                                 outlier.size = 0.1)
         }
-        g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
-						 theme_minimal() + ggtitle(paste0("Gate: ", selection))	
-        g
+          g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
+						   theme_minimal() + ggtitle(paste0("Gate: ", selection))	
+        
+          suppressWarnings(g)
         }
         )
     })
+
+    # Download Gate Information 
+    selected_gate_data <- reactive({
+      if (is.null(global$selection)){
+        X <- data.frame(global$X, Gate = global$g)
+        X <- as.matrix(X)
+      } else{
+        X <- as.matrix(global$X[global$g == global$selection,])
+      }
+      
+      fcs <- new("flowFrame", exprs = X)
+      fcs
+    })
+
+    all_gate_data <- reactive({
+      X <- data.frame(global$X, Gate = global$g)
+      X <- as.matrix(X)
+      fcs <- new("flowFrame", exprs = X)
+      fcs
+    })
+
+    output$export_selected_gate_fcs <- renderUI({
+      downloadButton("export_selected_gate_fcs_btn", "Export selected gates as FCS")
+    })
+
+    output$export_selected_gate_fcs_btn <- downloadHandler(
+      filename = function() paste0("CytoRF_Gate_", global$selection, ".fcs"),
+      content = function(file) write.FCS(selected_gate_data(), file)
+    )
+   
+    output$export_all_gates_fcs <- renderUI({
+      downloadButton("export_all_gates_fcs_btn", "Export all gates as FCS")
+    })
+    output$export_all_gates_fcs_btn <- downloadHandler(
+      filename = "CytoRF_all_gates.fcs",
+      content = function(file) write.FCS(all_gate_data(), file)
+    )
 
 		# Render Channel Density plot
     observeEvent(input$plot_click, {
@@ -319,6 +375,8 @@ cytorf.ui <- function(port = 1234){
 			  ix <- as.numeric(rownames(np))	
 			
 			  gate <- global$g[ix]
+        global$selection <- gate
+
 			  ix <- global$g == gate 
       
 			  g <- ggplot()
@@ -335,7 +393,8 @@ cytorf.ui <- function(port = 1234){
         }
         g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
 						  theme_minimal()	+ ggtitle(paste0("Gate: ", gate))
-        g
+        
+        suppressWarnings(g)
 		  })
     }
     )
@@ -349,12 +408,16 @@ cytorf.ui <- function(port = 1234){
 
 	
 			df <- data.frame(global$coords)	
-			ggplot(df, aes(x=df[,1], y=df[,2], color=selected_gate_value)) + geom_point() +
-			xlab(colnames(global$coords)[1]) +
-			ylab(colnames(global$coords)[2]) +
-			scale_colour_gradientn(colours = jet.colors(7), name="Expression") +
-			theme_minimal()	
+			
+      suppressWarnings(
+        ggplot(df, aes(x=df[,1], y=df[,2], color=selected_gate_value)) + geom_point() +
+			  xlab(colnames(global$coords)[1]) +
+			  ylab(colnames(global$coords)[2]) +
+			  scale_colour_gradientn(colours = jet.colors(7), name="Expression") +
+			  theme_minimal()
+      )
 		}, width=575)
+      
 
 		# Render Cluster Explorer
 		output$cluster_explorer <- renderPlot({
@@ -363,11 +426,14 @@ cytorf.ui <- function(port = 1234){
 	
 			df <- data.frame(global$coords)
 			df$Gates <- as.factor(global$g)
-			ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
-			xlab(colnames(global$coords)[1]) +
-			ylab(colnames(global$coords)[2]) +
-			scale_color_manual(values = getPalette(colorCount)) +
-			theme(legend.position="none") + theme_minimal()
+			
+      suppressWarnings(
+        ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
+			  xlab(colnames(global$coords)[1]) +
+			  ylab(colnames(global$coords)[2]) +
+			  scale_color_manual(values = getPalette(colorCount)) +
+			  theme(legend.position="none") + theme_minimal()
+      )
 			
 		})
 		
@@ -400,7 +466,7 @@ cytorf.ui <- function(port = 1234){
 			data <- summ[,-1]
 			data <- data[,hc$order]
 			data$Gate <- as.factor(summ$Group.1)
-			df <- reshape2::melt(data, id.vars="Gate",)
+			df <- reshape2::melt(data, id.vars="Gate")
 			ggplot(df, aes(x=Gate, y=variable, fill=value)) +
 				geom_tile() +
 				scale_fill_gradientn(colours = jet.colors(7), name="") +
