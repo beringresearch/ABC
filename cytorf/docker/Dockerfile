@@ -62,15 +62,36 @@ RUN apt-get update \
   && apt-get -y install libcurl4-gnutls-dev \
   && apt-get -y install libssl-dev
 
-EXPOSE 80
-
 ## Install the latest CYTORF package and its dependencies
 RUN Rscript -e "install.packages('devtools')"
 RUN Rscript -e "devtools::install_github('igraph/rigraph')" 
 RUN Rscript -e "source('https://bioconductor.org/biocLite.R'); biocLite('flowCore')"
-RUN Rscript -e "devtools::install_github('beringresearch/ABC/cytorf/R-package')"
+##RUN Rscript -e "devtools::install_github('beringresearch/ABC/cytorf/R-package')"
+RUN Rscript -e "devtools::install_github('beringresearch/ABC/cytorf/R-package', ref='dockerize')"
 
-RUN echo "library(cytorf); port <- 80; url <- paste0('http://localhost:', port); browseURL(url); cytorf.ui(port)" > ~/cytorf.R
+##COPY cytorf.R /tmp/cytorf.R
+##CMD ["Rscript", "/tmp/cytorf.R"]
 
-CMD ["Rscript", "~/cytorf.R"]
+## Install shiny server
+# Install dependencies and Download and install shiny server
+RUN apt-get update && apt-get install -y -t unstable \
+    sudo \
+    gdebi-core \
+    pandoc \
+    pandoc-citeproc \
+    libcurl4-gnutls-dev \
+    libcairo2-dev/unstable \
+    libxt-dev && \
+    wget --no-verbose https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/VERSION -O "version.txt" && \
+    VERSION=$(cat version.txt)  && \
+    wget --no-verbose "https://s3.amazonaws.com/rstudio-shiny-server-os-build/ubuntu-12.04/x86_64/shiny-server-$VERSION-amd64.deb" -O ss-latest.deb && \
+    gdebi -n ss-latest.deb && \
+    rm -f version.txt ss-latest.deb && \
+    R -e "install.packages(c('shiny', 'rmarkdown'), repos='https://cran.rstudio.com/')" && \
+    cp -R /usr/local/lib/R/site-library/shiny/examples/* /srv/shiny-server/ && \
+    rm -rf /var/lib/apt/lists/*
 
+EXPOSE 3838
+
+COPY shiny-server.sh /usr/bin/shiny-server.sh
+CMD ["R", "-e shiny::runApp(system.file('shiny', package='cytorf'))"]
