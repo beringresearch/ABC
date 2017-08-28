@@ -66,13 +66,8 @@ RUN apt-get update \
 RUN Rscript -e "install.packages('devtools')"
 RUN Rscript -e "devtools::install_github('igraph/rigraph')" 
 RUN Rscript -e "source('https://bioconductor.org/biocLite.R'); biocLite('flowCore')"
-##RUN Rscript -e "devtools::install_github('beringresearch/ABC/cytorf/R-package')"
 RUN Rscript -e "devtools::install_github('beringresearch/ABC/cytorf/R-package', ref='dockerize')"
 
-##COPY cytorf.R /tmp/cytorf.R
-##CMD ["Rscript", "/tmp/cytorf.R"]
-
-## Install shiny server
 # Install dependencies and Download and install shiny server
 RUN apt-get update && apt-get install -y -t unstable \
     sudo \
@@ -94,4 +89,9 @@ RUN apt-get update && apt-get install -y -t unstable \
 EXPOSE 3838
 
 COPY shiny-server.sh /usr/bin/shiny-server.sh
-CMD ["R", "-e shiny::runApp(system.file('shiny', package='cytorf'))"]
+RUN chmod +x /usr/bin/shiny-server.sh
+
+RUN mkdir -p /srv/shiny-server/cytorf
+RUN cp /usr/local/lib/R/site-library/cytorf/shiny/* /srv/shiny-server/cytorf
+
+CMD ["/usr/bin/shiny-server.sh"]
