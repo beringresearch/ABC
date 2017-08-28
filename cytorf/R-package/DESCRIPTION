@@ -1,0 +1,21 @@
+Package: cytorf
+Title: Unsupervised clustering using Random Forest proximity matrix
+Version: 0.0.2.0
+Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
+Description: What the package does (one paragraph).
+Depends: R (>= 3.3.1)
+Imports:
+	Rcpp,
+	ranger,
+	Rtsne,
+	igraph,
+	ggplot2,
+	RColorBrewer,
+	shiny,
+	shinyFiles,
+	flowCore
+LinkingTo: Rcpp
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
