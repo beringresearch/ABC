@@ -29,7 +29,8 @@ shinyServer(function(input, output) {
 								     transformation = FALSE,
 								     truncate_max_range = FALSE)
 
-					     channels <- global$fcs_raw@colnames
+					     channels <- paste0(global$fcs_raw@colnames, "_",
+                                  pData(parameters(global$fcs_raw[[1]]))$desc)
 	             global$file_names <- fcs_file$name
 
 					     output$file_list <- renderUI({
@@ -103,12 +104,14 @@ shinyServer(function(input, output) {
 
 					     fcs <- fsApply(global$fcs_raw, function(x, cofactor=5){
 								    set.seed(input$seed)
-								    nevents <- input$nevents
-								    if (nevents > nrow(x)) nevents <- nrow(x)
+                    max_events <- nrow(x)
+								    nevents <- min(c(max_events), input$nevents)
+								    
 								    subsample <- sample(1:nrow(x),
 											nevents, replace=FALSE)
 
-								    colnames(x) <- global$fcs_raw@colnames
+								    colnames(x) <- paste0(global$fcs_raw@colnames, "_",
+                                          pData(parameters(global$fcs_raw[[1]]))$desc)
 							    
 								    expr <- exprs(x)
 								    expr <- asinh(expr[subsample,] / cofactor)
