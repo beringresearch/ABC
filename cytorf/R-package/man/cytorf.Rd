@@ -4,7 +4,7 @@
 \alias{cytorf}
 \title{Perform unsupervised clusering using random forest}
 \usage{
-cytorf(X, Y = NULL, channels = NULL, num.trees = 50, scale = 5,
+cytorf(X, Y = NULL, channels = NULL, num.trees = 50, N = 10,
   seed = 1234, verbose = FALSE)
 }
 \arguments{
@@ -19,8 +19,7 @@ in clustering.}
 
 \item{num.trees}{number of trees to grow in a Random Forest.}
 
-\item{scale}{cluster granularity parameter. Lower and higher values result in
-smaller or larger number of clusters respectively.}
+\item{N}{number of neighbours for calculation of affinity matrix.}
 
 \item{seed}{random seed that controls clustering reproducibility}
 

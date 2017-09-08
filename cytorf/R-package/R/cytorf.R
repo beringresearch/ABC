@@ -7,8 +7,7 @@
 #' 			When it is left unspecified, all the variables will be included
 #' 			in clustering.
 #' @param num.trees 	number of trees to grow in a Random Forest.
-#' @param scale 	cluster granularity parameter. Lower and higher values result in
-#' 			smaller or larger number of clusters respectively.
+#' @param N 	number of neighbours for calculation of affinity matrix.
 #' @param seed 		random seed that controls clustering reproducibility
 #' @param verbose 	boolean level of verbosity (default: FALSE)
 #' @useDynLib cytorf
@@ -18,7 +17,7 @@
 #' @export
 
 cytorf <- function(X, Y=NULL, channels=NULL,
-		   num.trees=50, scale=5, seed=1234, verbose=FALSE){
+		   num.trees=50, N=10, seed=1234, verbose=FALSE){
 	
 	if (!is.null(channels))
 		X <- X[,channels]
@@ -35,7 +34,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 		set.seed(seed)
 		n_obs <- nrow(X)
 		synth_X <- apply(X, 2, function(x){
-				 	sample(x, n_obs)})
+				 	sample(x, n_obs, replace = TRUE)})
 
 		train <- as.data.frame(rbind(X, synth_X))
 		train$Y <- as.factor(c(rep(1, nrow(X)), rep(2, nrow(synth_X))))
@@ -52,11 +51,16 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	# Compute proximity matrix
 	if (verbose) cat("Calculating proximity matrix...\n")
 	proximity <- proximity_matrix(terminal_nodes)
-
+  pr <- proximity/num.trees
+    
+  # Compute affinity matrix
+  if (verbose) cat("Calculating affinity matrix...\n")
+  affinity <- make_affinity(pr, N)
+    
 	# Louvain clustering
 	if (verbose) cat("Clustering objects...\n")
-	pr <- proximity/(2*num.trees)
-	g <- graph_from_adjacency_matrix(pr^scale, mode="undirected", weighted=T, diag=F)
+	
+	g <- graph_from_adjacency_matrix(affinity, mode="undirected", weighted=T, diag=F)
 	cl <- cluster_louvain(g)
 	groups <- as.numeric(membership(cl))
 
@@ -94,4 +98,24 @@ predict.cytorf <- function(model, newdata, verbose=FALSE){
 	groups <- as.numeric(membership(cl))
 
 	return(groups)
+}
+
+# Helper functions
+make_affinity <- function(S, n.neighbors=10) {
+    N <- length(S[,1])
+    if (n.neighbors >= N) {  # fully connected
+        A <- S
+    } else {
+        A <- matrix(rep(0,N^2), ncol=N)
+        for(i in 1:N) { # for each line
+            # only connect to those points with larger similarity
+            best.similarities <- sort(S[i,], decreasing=TRUE)[1:n.neighbors]
+            for (s in best.similarities) {
+                j <- which(S[i,] == s)
+                A[i,j] <- S[i,j]
+                A[j,i] <- S[i,j] # to make an undirected graph, ie, the matrix becomes symmetric
+            }
+        }
+    }
+    A  
 }
