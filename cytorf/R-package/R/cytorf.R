@@ -1,15 +1,17 @@
 #' Perform unsupervised clusering using random forest
 #'
-#' @param X 		a data matrix for the flow cytometry data, it needs to have
-#' 			at least two columns.
-#' @param Y 		a factor vector of phenotypes (optional).
-#' @param channels 	a vector of two channel names or their corresponding indices.
-#' 			When it is left unspecified, all the variables will be included
-#' 			in clustering.
+#' @param X 		      a data matrix for the flow cytometry data, it needs to have
+#' 			              at least two columns.
+#' @param Y 		      a factor vector of phenotypes (optional).
+#' @param channels 	  a vector of two channel names or their corresponding indices.
+#' 			              When it is left unspecified, all the variables will be included
+#' 			              in clustering.
 #' @param num.trees 	number of trees to grow in a Random Forest.
-#' @param N 	number of neighbours for calculation of affinity matrix.
-#' @param seed 		random seed that controls clustering reproducibility
-#' @param verbose 	boolean level of verbosity (default: FALSE)
+#' @param N 	        number of neighbours for calculation of affinity matrix.
+#' @param sub.sample  integer indicating number of random elements to chose for proximity
+#'                    matrix calculation
+#' @param seed 		    random seed that controls clustering reproducibility
+#' @param verbose 	  boolean level of verbosity (default: FALSE)
 #' @useDynLib cytorf
 #' @importFrom Rcpp sourceCpp
 #' @importFrom igraph graph_from_adjacency_matrix cluster_louvain membership
@@ -17,7 +19,7 @@
 #' @export
 
 cytorf <- function(X, Y=NULL, channels=NULL,
-		   num.trees=50, N=10, seed=1234, verbose=FALSE){
+		   num.trees=125, N=10, sub.sample = 1000, seed=1234, verbose=FALSE){
 	
 	if (!is.null(channels))
 		X <- X[,channels]
@@ -25,28 +27,31 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	if (ncol(X) < 2) stop("Input matrix should have at least two columns.")
 
 	if (is.null(colnames(X))) stop("X values must contain unique column names.")
-
-	train <- data.frame(X)
-	train$Y <- Y
+  
+  set.seed(seed)
+  ix <- sample(1:nrow(X), sub.sample, replace = FALSE)
+	train <- data.frame(X[ix, ], check.names = FALSE)
+	train$Y <- Y[ix, ]
 
 	# Generate synthetic data for unsupervised prediction
 	if (is.null(Y)){
 		set.seed(seed)
-		n_obs <- nrow(X)
-		synth_X <- apply(X, 2, function(x){
+		n_obs <- nrow(train)
+		synth_X <- apply(train, 2, function(x){
 				 	sample(x, n_obs, replace = TRUE)})
 
-		train <- as.data.frame(rbind(X, synth_X))
-		train$Y <- as.factor(c(rep(1, nrow(X)), rep(2, nrow(synth_X))))
-	}else{
-		X <- train
+		train <- data.frame(rbind(train, synth_X), check.names = FALSE)
+		train$Y <- as.factor(rep(c(1, 2), each = nrow(train)/2))
 	}
-	
+   
+
 	if (verbose) cat("Building Random Forest model...\n")
 	# Build a random forest model and extract terminal nodes	
 	set.seed(seed)
 	model <- ranger(data=train, dependent.variable.name="Y", num.trees=num.trees)
-	terminal_nodes <- predict(model, X, type="terminalNodes")$predictions
+
+  if (verbose) cat("Assigning terminal nodes...\n") 
+	terminal_nodes <- predict(model, X[ix,], type="terminalNodes")$predictions
 
 	# Compute proximity matrix
 	if (verbose) cat("Calculating proximity matrix...\n")
@@ -58,46 +63,23 @@ cytorf <- function(X, Y=NULL, channels=NULL,
   affinity <- make_affinity(pr, N)
     
 	# Louvain clustering
-	if (verbose) cat("Clustering objects...\n")
-	
+	if (verbose) cat("Clustering objects...\n")	
 	g <- graph_from_adjacency_matrix(affinity, mode="undirected", weighted=T, diag=F)
 	cl <- cluster_louvain(g)
-	groups <- as.numeric(membership(cl))
+	groups <- as.numeric(membership(cl)) 
 
-	res <- structure(list(labels=groups,
+  df <- data.frame(X[ix,], Y = as.factor(groups), check.names = FALSE)
+  model <- ranger(data = df, dependent.variable.name = "Y", num.trees = num.trees)
+  clusters <- as.numeric(predict(model, X, type = "response")$predictions)
+ 
+
+	res <- structure(list(labels=clusters,
 			      model=model,
 			      options=list(channels=channels, num.trees=num.trees,
-					   scale=scale, seed=seed)), class="cytorf")
+                         N = N, sub.sample = sub.sample,
+                         seed=seed)), class="cytorf")
 
 	return(res)
-}
-
-#' Predict cytorf clusters from a supervised model
-#'
-#' @param model 	cytorf model
-#' @param newdata 	data.frame object
-#' @param verbose 	boolean control of verbosity levels. Default is FALSE.
-#' @import ranger igraph
-#' @export
-
-predict.cytorf <- function(model, newdata, verbose=FALSE){
-	X <- data.frame(newdata)
-	X$Y <- rep(0, nrow(newdata))
-	num.trees <- model$options$num.trees
-	scale <- model$options$scale
-
-	if (verbose) cat("Calculating proximity matrix...\n")
-	terminal_nodes <- predict(model$model, X, type="terminalNodes")$predictions
-	proximity <- proximity_matrix(terminal_nodes)
-	
-	# Louvain clustering
-	if (verbose) cat("Clustering objects...\n")
-	pr <- proximity/(2*num.trees)
-	g <- graph_from_adjacency_matrix(pr^scale, mode="undirected", weighted=T, diag=F)
-	cl <- cluster_louvain(g)
-	groups <- as.numeric(membership(cl))
-
-	return(groups)
 }
 
 # Helper functions
