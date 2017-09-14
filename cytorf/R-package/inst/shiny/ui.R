@@ -10,8 +10,8 @@ shinyUI(
 				 sidebarPanel(width = 3,   
 					      numericInput("ntrees", "Number of Trees",
 							   125, min = 2, max = 1000),
-					      numericInput("scale", "Cluster Granularity",
-							   7, min=1, max=25),
+					      numericInput("scale", "Nearest Neighbours",
+							   10, min=1, max=250),
 					      numericInput("seed", "Random Seed",
 							   12345, min=1, max=Inf)
 					      ),

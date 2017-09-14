@@ -7,7 +7,6 @@ Depends: R (>= 3.3.1)
 Imports:
 	Rcpp,
 	ranger,
-	Rtsne,
 	igraph,
 	ggplot2,
 	RColorBrewer,

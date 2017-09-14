@@ -1,7 +1,6 @@
 library(cytorf)
 library(flowCore)
 library(RColorBrewer)
-library(Rtsne)
 library(ggplot2)
 
 shinyServer(function(input, output) {
@@ -70,11 +69,7 @@ shinyServer(function(input, output) {
 								 multiple = TRUE,
 								 selectize = FALSE)})
 
-					     observeEvent(input$channel_list, {
-								  output$run_analysis_subsample <- renderUI({
-									  numericInput("nevents",
-										       "Number of events from each file",
-										       1000, min=10, max=Inf)})
+					     observeEvent(input$channel_list, {	
 								  output$run_analysis_run <- renderUI({
 									  actionButton("run", "Run Clustering")})
 							  
@@ -104,17 +99,12 @@ shinyServer(function(input, output) {
 
 					     fcs <- fsApply(global$fcs_raw, function(x, cofactor=5){
 								    set.seed(input$seed)
-                    max_events <- nrow(x)
-								    nevents <- min(c(max_events), input$nevents)
-								    
-								    subsample <- sample(1:nrow(x),
-											nevents, replace=FALSE)
-
+                    
 								    colnames(x) <- paste0(global$fcs_raw@colnames, "_",
                                           pData(parameters(global$fcs_raw[[1]]))$desc)
 							    
 								    expr <- exprs(x)
-								    expr <- asinh(expr[subsample,] / cofactor)
+								    expr <- asinh(expr / cofactor)
 								    expr <- expr[, input$channel_list] 
 
 								    exprs(x) <- expr
@@ -136,19 +126,14 @@ shinyServer(function(input, output) {
 	                                seed=input$seed,
 	                                verbose=TRUE)$labels
 					     nclusters <- length(unique(global$g))
-
-					     echo <- paste0("Number of clusters: ", nclusters, "\n",
-							    "Number of events: ", nrow(global$X))
-
-					     output$analysis_summary <- renderText({echo})
 				     
 	             cat("Generating coordinates...")
 					     if (ncol(global$X) == 2){
 						     	global$coords <- global$X
 					     } else {
-						     	tsne <- Rtsne(global$X)
-						     	global$coords <- tsne$Y[,1:2]
-						     	colnames(global$coords) <- c("viSNE.1", "viSNE.2")
+						     	#tsne <- Rtsne(global$X)
+						     	#global$coords <- tsne$Y[,1:2]
+						     	#colnames(global$coords) <- c("viSNE.1", "viSNE.2")
 					     }
 
 	             cat("\n--FINISHED--\n")
