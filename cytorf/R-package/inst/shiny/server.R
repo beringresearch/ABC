@@ -29,11 +29,19 @@ shinyServer(function(input, output)
 			  global$fcs_raw <- read.flowSet(as.character(fcs_file$datapath),
                                        transformation = FALSE,
                                        truncate_max_range = FALSE)
- 
-				channels <- paste0(global$fcs_raw@colnames, "_",
-                           pData(parameters(global$fcs_raw[[1]]))$desc)
+        
+        if (!any(is.na(pData(parameters(global$fcs_raw[[1]]))$desc))){ 
+				  channels <- paste0(global$fcs_raw@colnames, "_",
+                            pData(parameters(global$fcs_raw[[1]]))$desc)
+        }else{
+          channels <- global$fcs_raw@colnames
+        }
 	      
         global$file_names <- fcs_file$name
+        global$X <- NULL
+        global$Y <- NULL
+        global$coords <- NULL
+        global$g <- NULL
         
         # Dynamically render a list of selected files as an HTML table
 			  output$file_list <- renderUI(
@@ -115,8 +123,13 @@ shinyServer(function(input, output)
     
 				fcs <- fsApply(global$fcs_raw, function(x, cofactor=5)
                  { 
-                   colnames(x) <- paste0(global$fcs_raw@colnames, "_",
-                                         pData(parameters(global$fcs_raw[[1]]))$desc)
+                   
+                   if (!any(is.na(pData(parameters(global$fcs_raw[[1]]))$desc))){ 
+				            colnames(x) <- paste0(global$fcs_raw@colnames, "_",
+                            pData(parameters(global$fcs_raw[[1]]))$desc)
+                   }else{
+                    colnames(x) <- global$fcs_raw@colnames
+                   } 
                    
                    expr <- exprs(x)
 								   expr <- asinh(expr / cofactor)
@@ -131,6 +144,7 @@ shinyServer(function(input, output)
         # Generate a Y variable if grouping information was supplied
         if(!any(sapply(group, function(x) x ==""))){
 	        global$Y <- as.factor(rep(group, unlist(fsApply(fcs, nrow))))
+          print(unique(global$Y))
 	      }
 
 	      # Remove duplicates
@@ -156,7 +170,8 @@ shinyServer(function(input, output)
           
           freq_table <- table(global$g$labels)
           global$subsampling <- vector()
-
+          
+          set.seed(input$seed)
           for (n in 1:length(freq_table)){
             class_ix <- which(global$g$labels == n)
             ix <- sample(class_ix, 100)
@@ -199,27 +214,36 @@ shinyServer(function(input, output)
 
     #------------------------------------ PLOTS
 	  # Cluster Plot
-		output$plot_cluster <- renderPlot(
+    output$plot_cluster <- renderPlot(
       {
+        shiny::validate(
+           need(!is.null(global$coords), "Run CytoRF to get started!")
+        )
+
         getPalette = colorRampPalette(brewer.pal(9, "Set1"))
         colorCount <- length(unique(global$g$labels[global$subsampling]))
         df <- data.frame(global$coords)
         df$Gates <- as.factor(global$g$labels[global$subsampling])
         suppressWarnings(
-	        ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
-				    xlab(colnames(global$coords)[1]) +
+          ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
+            xlab(colnames(global$coords)[1]) +
 				    ylab(colnames(global$coords)[2]) +
 				    scale_color_manual(values = getPalette(colorCount)) +
 				    theme(legend.position="none") + theme_minimal() + 
 	          ggtitle("CytoRF Gates")
-	        )
-			  })
+	      )
+			}
+    )
+ 
 
     # Channel Density plot
 	  observeEvent(input$plot_click,
       {
 			  output$plot_density <- renderPlot(
-        {	
+        { 
+          shiny::validate(
+            need(!is.null(global$coords), "")
+          )
 				  ix <- input$plot_click	
 			
 				  np <- data.frame(nearPoints(as.data.frame(global$coords),
@@ -240,7 +264,7 @@ shinyServer(function(input, output)
 	          df <- reshape2::melt(global$X[global$subsampling[ix],])
 	          g <- g + geom_boxplot(data = df, aes(x=Var2, y=value), outlier.size = 0.1)
 	        } else{
-	          df <- data.frame(global$X[global$subsampling],
+	          df <- data.frame(global$X[global$subsampling, ],
                              Group=global$Y[global$subsampling])
 	          df <- df[ix,]
 	          df <- reshape2::melt(df, id.vars="Group")
@@ -258,13 +282,17 @@ shinyServer(function(input, output)
 	   )
 
 
-    # Render Expression Plot
+    # Render Expression Plot 
 		output$plot_expression <- renderPlot(
-      {
+      { 
+        shiny::validate(
+          need(!is.null(global$coords), "")
+        )
+
 		    selected_gate_value <- global$X[global$subsampling, input$visualise_channel]
 			
         jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
-								                        "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+								                         "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
         
         df <- data.frame(global$coords)	
 			
@@ -278,19 +306,23 @@ shinyServer(function(input, output)
 	      )
 		  }, width=575)
 
-	    # Render Select Gate dropdown
-	    output$select_gate <- renderUI(
-        {
-	        selectInput("select_gate",
-										  "Visualise Gates",
-										  choices = global$g$labels,
-										  multiple = FALSE)
-	      }
-      )
+	  # Render Select Gate dropdown
+	  output$select_gate <- renderUI(
+      {
+	      selectInput("select_gate",
+	  							  "Visualise Gates",
+			  					  choices = global$g$labels,
+									  multiple = FALSE)
+	    }
+    )
 
      # Feature Importance Plot    
 	  output$gate_predictions <- renderPlot(
       {
+        shiny::validate(
+           need(!is.null(global$g), "")
+        )
+
         if (!is.null(global$Y)){
           x <- data.frame(Gate = as.factor(global$g$labels), Y=global$Y)
           x <- model.matrix(Y~.-1, data=x)
@@ -318,6 +350,10 @@ shinyServer(function(input, output)
 
 	      output$plot_density <- renderPlot(
           {
+            shiny::validate(
+              need(!is.null(global$coords), "")
+            )
+
 	          g <- ggplot()
 	          if(is.null(global$Y)){
 	             df <- reshape2::melt(global$X[global$subsampling[ix], ])

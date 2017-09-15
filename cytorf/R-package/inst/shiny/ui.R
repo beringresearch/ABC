@@ -13,7 +13,7 @@ shinyUI(
 					      numericInput("nearest_neighbour", "Nearest Neighbours",
 							   10, min=1, max=250),
                 numericInput("sub_sample", "Subsampling",
-                 100, min = 100, max = Inf),
+                 1000, min = 100, max = Inf),
 					      numericInput("seed", "Random Seed",
 							   12345, min=1, max=Inf)
 					      ),
