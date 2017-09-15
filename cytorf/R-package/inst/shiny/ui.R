@@ -10,8 +10,10 @@ shinyUI(
 				 sidebarPanel(width = 3,   
 					      numericInput("ntrees", "Number of Trees",
 							   125, min = 2, max = 1000),
-					      numericInput("scale", "Nearest Neighbours",
+					      numericInput("nearest_neighbour", "Nearest Neighbours",
 							   10, min=1, max=250),
+                numericInput("sub_sample", "Subsampling",
+                 100, min = 100, max = Inf),
 					      numericInput("seed", "Random Seed",
 							   12345, min=1, max=Inf)
 					      ),
@@ -59,8 +61,7 @@ shinyUI(
                 
                 hr(),
 								h4("Step 3: Cluster"),
-								div(style="display: inline-block;vertical-align:top; width: 700px;",
-								    htmlOutput("run_analysis_subsample"),
+								div(style="display: inline-block;vertical-align:top; width: 700px;", 
 								    htmlOutput("run_analysis_run")),
 								div(style="display: inline-block;vertical-align:top; width: 200px;",
 								    helpText("Running time is directly proportional to number of events from each file. To quickly assess clustering output, select a small subsample.")),

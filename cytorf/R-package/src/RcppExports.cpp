@@ -5,20 +5,20 @@
 
 using namespace Rcpp;
 
-// proximity_matrix
-NumericMatrix proximity_matrix(NumericMatrix idx);
-RcppExport SEXP _cytorf_proximity_matrix(SEXP idxSEXP) {
+// rcpp_proximity_matrix
+NumericMatrix rcpp_proximity_matrix(NumericMatrix idx);
+RcppExport SEXP _cytorf_rcpp_proximity_matrix(SEXP idxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericMatrix >::type idx(idxSEXP);
-    rcpp_result_gen = Rcpp::wrap(proximity_matrix(idx));
+    rcpp_result_gen = Rcpp::wrap(rcpp_proximity_matrix(idx));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_cytorf_proximity_matrix", (DL_FUNC) &_cytorf_proximity_matrix, 1},
+    {"_cytorf_rcpp_proximity_matrix", (DL_FUNC) &_cytorf_rcpp_proximity_matrix, 1},
     {NULL, NULL, 0}
 };
 

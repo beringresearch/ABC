@@ -5,7 +5,7 @@
 \title{Perform unsupervised clusering using random forest}
 \usage{
 cytorf(X, Y = NULL, channels = NULL, num.trees = 125, N = 10,
-  sub.sample = 1000, seed = 1234, verbose = FALSE)
+  sub.sample = 0.01, seed = 1234, verbose = FALSE)
 }
 \arguments{
 \item{X}{a data matrix for the flow cytometry data, it needs to have
@@ -21,7 +21,8 @@ in clustering.}
 
 \item{N}{number of neighbours for calculation of affinity matrix.}
 
-\item{sub.sample}{integer indicating number of random elements to chose for proximity
+\item{sub.sample}{double indicating a fraction random elements to chose for
+calculation of proximity matrix. Range is 0-1.
 matrix calculation}
 
 \item{seed}{random seed that controls clustering reproducibility}
