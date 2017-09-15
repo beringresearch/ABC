@@ -103,7 +103,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
     
   # Compute affinity matrix
   if (verbose) cat("Calculating affinity matrix...\n")
-  affinity <- make_affinity(pr, N)
+  affinity <- affinity_matrix(pr, N)
     
 	# Louvain clustering
 	if (verbose) cat("Clustering objects...\n")	
@@ -125,16 +125,30 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	return(res)
 }
 
-# Helper functions
-make_affinity <- function(S, n.neighbors=10) {
-    N <- length(S[,1])
-    if (n.neighbors >= N) {  # fully connected
+#' Extract proximity matrix
+#'
+#' @param terminal_nodes  vector
+#' @export
+proximity_matrix <- function(terminal_nodes){
+  rcpp_proximity_matrix(terminal_nodes)
+}
+
+
+#' Extract affinity matrix from proximity matrix
+#' 
+#' @param S   square matrix
+#' @param N   nearest neighbours
+#'
+#' @export
+affinity_matrix <- function(S, N=10) {
+    n <- length(S[,1])
+    if (N >= n) {  # fully connected
         A <- S
     } else {
-        A <- matrix(rep(0,N^2), ncol=N)
-        for(i in 1:N) { 
+        A <- matrix(rep(0,n^2), ncol=n)
+        for(i in 1:n) { 
             # only connect to those points with larger similarity
-            best.similarities <- sort(S[i,], decreasing=TRUE)[1:n.neighbors]
+            best.similarities <- sort(S[i,], decreasing=TRUE)[1:N]
             for (s in best.similarities) {
                 j <- which(S[i,] == s)
                 A[i,j] <- S[i,j]
