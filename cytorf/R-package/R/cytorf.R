@@ -20,35 +20,72 @@
 #' @export
 
 cytorf <- function(X, Y=NULL, channels=NULL,
-		   num.trees=125, N=10, sub.sample = 0.01, seed=1234, verbose=FALSE){
-	
-	if (!is.null(channels))
-		X <- X[,channels]
-
-	if (ncol(X) < 2) stop("Input matrix should have at least two columns.")
-
-	if (is.null(colnames(X))) stop("X values must contain unique column names.")
+                   num.trees=125, N=10,
+                   sub.sample = 0.01,
+                   seed=1234,
+                   verbose=FALSE){
   
-  if (sub.sample < 0) stop("sub.sample should be a positive number.")
+  if (!is.null(channels))
+    X <- X[,channels]
 
-  if (sub.sample <= 1) sub.sample <- round(sub.sample * nrow(X)) 
+	if (ncol(X) < 2)
+    stop("Input matrix should have at least two columns.")
 
-  set.seed(seed)
-  ix <- sample(1:nrow(X), sub.sample, replace = FALSE)
-	train <- data.frame(X[ix, ], check.names = FALSE)
-	train$Y <- Y[ix, ]
+	if (is.null(colnames(X)))
+    stop("X values must contain unique column names.")
+  
+  # Subsampling error handling 
+  if (sub.sample < 0)
+    stop("sub.sample should be a positive number.")
+  if (sub.sample <= 1 & is.null(Y))
+    sub.sample <- round(sub.sample * nrow(X))
+  if (sub.sample > nrow(X))
+    stop("Trying to subsample on more events than there are rows in X.")
 
+  
 	# Generate synthetic data for unsupervised prediction
 	if (is.null(Y)){
-		set.seed(seed)
-		n_obs <- nrow(train)
-		synth_X <- apply(train, 2, function(x){
-				 	sample(x, n_obs, replace = TRUE)})
+    set.seed(seed)
+    # Sub sample in class-independent fashion
+    subsampling_index <- sample(1:nrow(X), sub.sample, replace = FALSE)
+    train <- data.frame(X[subsampling_index, ], check.names = FALSE)
+    train$Y <- Y[subsampling_index, ]
 
-		train <- data.frame(rbind(train, synth_X), check.names = FALSE)
-		train$Y <- as.factor(rep(c(1, 2), each = nrow(train)/2))
-	}
-   
+    # Generate a synthetic dataset
+    n_obs <- nrow(train)
+    synth_X <- apply(train, 2, function(x)
+                     {
+                       sample(x, n_obs, replace = TRUE)
+                     }
+    )
+    train <- data.frame(rbind(train, synth_X), check.names = FALSE)
+    train$Y <- as.factor(rep(c(1, 2), each = nrow(train)/2))
+
+  } else{
+
+    # Check that length of Y matches to number of rows in X
+    if (length(Y) != nrow(X))
+      stop("Length of Y does not equal to number of rows in X.")
+
+    if (!is.factor(Y))
+      Y <- factor(Y, levels = unique(Y))
+
+    if (sub.sample <= 1){
+      freq_table <- round(table(Y) * sub.sample)
+    }else {
+      freq_table <- rep(sub.sample, length(levels(Y)))
+    }
+
+    subsampling_index <- vector()
+    for (n in 1:length(freq_table)){
+      class_index <- which(Y == levels(Y)[n])
+      ix <- sample(class_index, freq_table[n])
+      subsampling_index <- c(subsampling_index, ix)
+    }
+
+    train <- data.frame(X[subsampling_index, ], check.names = FALSE)
+    train$Y <- Y[subsampling_index]
+  }
 
 	if (verbose) cat("Building Random Forest model...\n")
 	# Build a random forest model and extract terminal nodes	
@@ -56,7 +93,8 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	model <- ranger(data=train, dependent.variable.name="Y", num.trees=num.trees)
 
   if (verbose) cat("Assigning terminal nodes...\n") 
-	terminal_nodes <- predict(model, X[ix,], type="terminalNodes")$predictions
+	terminal_nodes <- predict(model, X[subsampling_index, ],
+                            type="terminalNodes")$predictions
 
 	# Compute proximity matrix
 	if (verbose) cat("Calculating proximity matrix...\n")
@@ -73,7 +111,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	cl <- cluster_louvain(g)
 	groups <- as.numeric(membership(cl)) 
 
-  df <- data.frame(X[ix,], Y = as.factor(groups), check.names = FALSE)
+  df <- data.frame(X[subsampling_index,], Y = as.factor(groups), check.names = FALSE)
   model <- ranger(data = df, dependent.variable.name = "Y", num.trees = num.trees)
   clusters <- as.numeric(predict(model, X, type = "response")$predictions)
  
