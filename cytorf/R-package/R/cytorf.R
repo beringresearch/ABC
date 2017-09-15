@@ -8,7 +8,8 @@
 #' 			              in clustering.
 #' @param num.trees 	number of trees to grow in a Random Forest.
 #' @param N 	        number of neighbours for calculation of affinity matrix.
-#' @param sub.sample  integer indicating number of random elements to chose for proximity
+#' @param sub.sample  double indicating a fraction random elements to chose for
+#'                    calculation of proximity matrix. Range is 0-1.
 #'                    matrix calculation
 #' @param seed 		    random seed that controls clustering reproducibility
 #' @param verbose 	  boolean level of verbosity (default: FALSE)
@@ -19,7 +20,7 @@
 #' @export
 
 cytorf <- function(X, Y=NULL, channels=NULL,
-		   num.trees=125, N=10, sub.sample = 1000, seed=1234, verbose=FALSE){
+		   num.trees=125, N=10, sub.sample = 0.01, seed=1234, verbose=FALSE){
 	
 	if (!is.null(channels))
 		X <- X[,channels]
@@ -28,6 +29,10 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 
 	if (is.null(colnames(X))) stop("X values must contain unique column names.")
   
+  if (sub.sample < 0) stop("sub.sample should be a positive number.")
+
+  if (sub.sample <= 1) sub.sample <- round(sub.sample * nrow(X)) 
+
   set.seed(seed)
   ix <- sample(1:nrow(X), sub.sample, replace = FALSE)
 	train <- data.frame(X[ix, ], check.names = FALSE)
@@ -89,13 +94,13 @@ make_affinity <- function(S, n.neighbors=10) {
         A <- S
     } else {
         A <- matrix(rep(0,N^2), ncol=N)
-        for(i in 1:N) { # for each line
+        for(i in 1:N) { 
             # only connect to those points with larger similarity
             best.similarities <- sort(S[i,], decreasing=TRUE)[1:n.neighbors]
             for (s in best.similarities) {
                 j <- which(S[i,] == s)
                 A[i,j] <- S[i,j]
-                A[j,i] <- S[i,j] # to make an undirected graph, ie, the matrix becomes symmetric
+                A[j,i] <- S[i,j] 
             }
         }
     }
