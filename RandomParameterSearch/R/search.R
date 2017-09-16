@@ -3,16 +3,19 @@
 #' @param grid      random search grid
 #' @param FUN       function to be applied
 #' @param maximise  boolean value indicate weather parameters that maximise a function
-#'                  should be selected
+#'                  should be selected. Defaults to FALSE
+#' @param verbose   boolean value that controls output verbosity. Defaults to FALSE.
 #' @export
 
-search <- function(grid, FUN, maximise = FALSE){
+search <- function(grid, FUN, maximise = FALSE, verbose = FALSE){
 
   grid_df <- as.data.frame(grid, check.names = FALSE)
 
  capture.output( res <- apply(grid_df, 1, function(x){
                               args <- as.list(x)
-                              do.call(FUN, args = args)
+                              value <- do.call(FUN, args = args)
+                              if (verbose) cat("Value: ", value, "\n")
+                              value
           })
   )
   
