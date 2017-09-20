@@ -4,8 +4,8 @@
 \alias{cytorf}
 \title{Perform unsupervised clusering using random forest}
 \usage{
-cytorf(X, Y = NULL, channels = NULL, num.trees = 50, scale = 5,
-  seed = 1234, verbose = FALSE)
+cytorf(X, Y = NULL, channels = NULL, num.trees = 125, N = 10,
+  sub.sample = 0.01, seed = 1234, verbose = FALSE)
 }
 \arguments{
 \item{X}{a data matrix for the flow cytometry data, it needs to have
@@ -19,8 +19,11 @@ in clustering.}
 
 \item{num.trees}{number of trees to grow in a Random Forest.}
 
-\item{scale}{cluster granularity parameter. Lower and higher values result in
-smaller or larger number of clusters respectively.}
+\item{N}{number of neighbours for calculation of affinity matrix.}
+
+\item{sub.sample}{double indicating a fraction random elements to chose for
+calculation of proximity matrix. Range is 0-1.
+matrix calculation}
 
 \item{seed}{random seed that controls clustering reproducibility}
 

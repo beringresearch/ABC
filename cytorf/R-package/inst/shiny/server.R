@@ -1,379 +1,423 @@
 library(cytorf)
 library(flowCore)
 library(RColorBrewer)
-library(Rtsne)
 library(ggplot2)
+library(igraph)
+library(ranger)
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output)
+  {
     # Declare global variables
-    global = reactiveValues(
-    file_names = NULL,
-    fcs_raw = NULL,
-				X = NULL,
-                Y = NULL,
-                g = NULL,
-                coords = NULL,
-                selection = NULL)
-                
-	# File Selection
-			shinyFileChoose(input, 'files',
-					roots=c(home=Sys.getenv("HOME")), 
-					filetypes=c('fcs'))
-			    	    	
-			observeEvent(input$files, {
- 
-					     fcs_file <- parseFilePaths(roots=c(home=Sys.getenv("HOME")),
-									     input$files)
-				     
-					     global$fcs_raw <- read.flowSet(as.character(fcs_file$datapath),
-								     transformation = FALSE,
-								     truncate_max_range = FALSE)
+    global = reactiveValues(file_names = NULL,
+                            fcs_raw = NULL,
+                            X = NULL,
+                            Y = NULL,
+                            g = NULL,
+                            subsampling = NULL,
+                            coords = NULL,
+                            selection = NULL)
+    
+    # File Selection
+    shinyFileChoose(input, 'files',
+                    roots=c(home=Sys.getenv("HOME")),
+                    filetypes=c('fcs'))
+    
+    observeEvent(input$files,
+      {
+        fcs_file <- parseFilePaths(roots=c(home=Sys.getenv("HOME")), input$files)
+				      
+			  global$fcs_raw <- read.flowSet(as.character(fcs_file$datapath),
+                                       transformation = FALSE,
+                                       truncate_max_range = FALSE)
+        
+        if (!any(is.na(pData(parameters(global$fcs_raw[[1]]))$desc))){ 
+				  channels <- paste0(global$fcs_raw@colnames, "_",
+                            pData(parameters(global$fcs_raw[[1]]))$desc)
+        }else{
+          channels <- global$fcs_raw@colnames
+        }
+	      
+        global$file_names <- fcs_file$name
+        global$X <- NULL
+        global$Y <- NULL
+        global$coords <- NULL
+        global$g <- NULL
+        
+        # Dynamically render a list of selected files as an HTML table
+			  output$file_list <- renderUI(
+          {
+	          return(tagList(
+                           lapply(as.list(global$file_names),
+                                  function(x){
+                                    tags$tr(
+	                                    tags$td(x)
+	                                  )
+	                                })
+	                        )
+                  )
+	         }
+        ) 
 
-					     channels <- global$fcs_raw@colnames
-	             global$file_names <- fcs_file$name
-
-					     output$file_list <- renderUI({
-	               return(tagList(
-	                 lapply(as.list(global$file_names),
-	                   function(x){
-	                     tags$tr(
-	                       tags$td(x)
-	                     )
-	                   })
-	               ))
-	             }) 
-
-	            # Sample Group Assigment
-	            output$sampleGroupNameList = renderUI({ 
-	              return(tagList(
-	                     lapply(as.list(global$file_names),
-	                            function(x) {
-	                              tags$tr(
-	                                tags$td(
-	                                  textInput(inputId=paste0(x, "_group"), label=x)
-	                                )
+	      # Assign samples into groups using a dynamic text box
+	      output$sampleGroupNameList = renderUI(
+          { 
+	          return(tagList(
+	                         lapply(as.list(global$file_names),
+	                                function(x) {
+	                                  tags$tr(
+	                                    tags$td(
+	                                    textInput(inputId=paste0(x, "_group"), label=x)
+	                                    )
+	                                  )
+	                                }
 	                              )
-	                            }
-	                           )
-	                          )
-	                      )
-	             })
-
-
-					     output$channel_list <- renderUI({
-						     selectInput("channel_list",
-								 "Available Channels",
-								 choices = channels,
-								 size = 15, 
-								 selected = NULL,
-								 multiple = TRUE,
-								 selectize = FALSE)})
-
-					     observeEvent(input$channel_list, {
-								  output$run_analysis_subsample <- renderUI({
-									  numericInput("nevents",
-										       "Number of events from each file",
-										       1000, min=10, max=Inf)})
-								  output$run_analysis_run <- renderUI({
-									  actionButton("run", "Run Clustering")})
+	                         )
+	                 )
+	         })
+        
+        # Select a list of all available channels 
+        output$channel_list <- renderUI(
+          {
+            selectInput("channel_list", "Available Channels",
+                        choices = channels,
+                        size = 15, 
+                        selected = NULL,
+                        multiple = TRUE,
+                        selectize = FALSE)
+          })
+        
+        # Listen to a channel selection and generate a Run button once at least
+        # one channel was selected
+        observeEvent(input$channel_list,
+          {
+            output$run_analysis_run <- renderUI(
+              {
+                actionButton("run", "Run Clustering")
+              })
 							  
-								  # Show Channel List in Results section
-								  output$visualise_channel <- renderUI({
-									  selectInput("visualise_channel",
-										      "Visualise Channel",
-										      choices = input$channel_list,
-										      multiple = FALSE)})
+					  # Show Channel List in Results section
+					  output$visualise_channel <- renderUI(
+              {
+                selectInput("visualise_channel", "Visualise Channel",
+                            choices = input$channel_list,
+                            multiple = FALSE)
+              })
 						})
-			})
-   
+			}) # End Input Files
 
-	 		# Run Analysis
-			observeEvent(input$run, {
-	             cat("\n--CytoRF--\n") 
-	             group.input.id <- names(input)[which(regexpr(text=names(input),
-	                                                          pattern="_group")>0)]
+	 	# RUN ANALYSIS
+		observeEvent(input$run,
+      {
+        cat("\n--CytoRF--\n") 
+	      group.input.id <- names(input)[which(regexpr(text=names(input),
+                                                     pattern="_group")>0)]
 
-	             # Only retain those input ids generated by the latest files
-	             fnames <- gsub(x=group.input.id, pattern = "_group", replacement = "")
-	             ix <- match(global$file_names, fnames)
-	             group <- unlist(lapply(group.input.id, function(x) input[[x]]))   
-	             group <- group[ix]
-	             print(group)
-            
-
-					     fcs <- fsApply(global$fcs_raw, function(x, cofactor=5){
-								    set.seed(input$seed)
-								    nevents <- input$nevents
-								    if (nevents > nrow(x)) nevents <- nrow(x)
-								    subsample <- sample(1:nrow(x),
-											nevents, replace=FALSE)
-
-								    colnames(x) <- global$fcs_raw@colnames
-							    
-								    expr <- exprs(x)
-								    expr <- asinh(expr[subsample,] / cofactor)
-								    expr <- expr[, input$channel_list] 
-
-								    exprs(x) <- expr
-								    x})
-
-					     global$X <- fsApply(fcs, exprs)
-	             if(!any(sapply(group, function(x) x ==""))){
-	               global$Y <- as.factor(rep(group, unlist(fsApply(fcs, nrow))))
-	             }
-
-	             duplicates <- duplicated(global$X)
-	             global$X <- global$X[!duplicates,]
-	             global$Y <- global$Y[!duplicates]
-
-	 				     global$g <- cytorf(X = global$X,
-	                                Y = global$Y,
-	                                num.trees = input$ntrees,
-							                    scale = input$scale,
-	                                seed=input$seed,
-	                                verbose=TRUE)$labels
-					     nclusters <- length(unique(global$g))
-
-					     echo <- paste0("Number of clusters: ", nclusters, "\n",
-							    "Number of events: ", nrow(global$X))
-
-					     output$analysis_summary <- renderText({echo})
-				     
-	             cat("Generating coordinates...")
-					     if (ncol(global$X) == 2){
-						     	global$coords <- global$X
-					     } else {
-						     	tsne <- Rtsne(global$X)
-						     	global$coords <- tsne$Y[,1:2]
-						     	colnames(global$coords) <- c("viSNE.1", "viSNE.2")
-					     }
-
-	             cat("\n--FINISHED--\n")
-	  
-	    # Gate-based sample classification       
-	      output$gate_predictions <- renderPlot({
-	        if (!is.null(global$Y)){
-      
-	        x <- data.frame(Gate = as.factor(global$g), Y=global$Y)
-	        x <- model.matrix(Y~.-1, data=x)
-	        x <- data.frame(x, Y=global$Y)
+	      # Only retain those input ids generated by the latest files
+	      fnames <- gsub(x=group.input.id, pattern = "_group", replacement = "")
+	      ix <- match(global$file_names, fnames)
+	      group <- unlist(lapply(group.input.id, function(x) input[[x]]))   
+	      group <- group[ix] 
         
-	        model <- ranger::ranger(data=x, dependent.variable.name="Y",
-	                              importance="impurity")
-
-	        imp <- ranger::importance(model)
-	        imp <- data.frame(Group=names(imp), Importance=imp)
-	        print(head(imp)) 
-				
-	        suppressWarnings(
-	          ggplot(imp, aes(x=Group, y=Importance)) + geom_bar(stat="identity") +
-	          xlab("") +
-	          theme_minimal()
-	        )
-       
-	        }
-	      })
-		
-			# Render Clustering Plot
-			output$plot_cluster <- renderPlot({
-				getPalette = colorRampPalette(brewer.pal(9, "Set1"))
-				colorCount <- length(unique(global$g))
-	
-				df <- data.frame(global$coords)
-				df$Gates <- as.factor(global$g)
-
-				suppressWarnings(
-	        ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
-				  xlab(colnames(global$coords)[1]) +
-				  ylab(colnames(global$coords)[2]) +
-				  scale_color_manual(values = getPalette(colorCount)) +
-				  theme(legend.position="none") + theme_minimal() + 
-	        ggtitle("CytoRF Gates")
-	      )
-			})
-
-	    # Render Select Gate
-	    output$select_gate <- renderUI({
-	      selectInput("select_gate",
-										"Visualise Gates",
-										choices = global$g,
-										multiple = FALSE)
-	    })
-
-	    observeEvent(input$select_gate, {
-	      selection <- as.numeric(input$select_gate)
-	      ix <- global$g == selection
-	      global$selection <- selection
-
-	      output$plot_density <- renderPlot({
-	        g <- ggplot()
-	        if(is.null(global$Y)){
-	          df <- reshape2::melt(global$X[ix,])
-	          g <- g + geom_boxplot(data = df, aes(x=Var2, y=value), outlier.size = 0.1)
-	        } else{
-	          df <- data.frame(global$X, Group=global$Y)
-	          df <- df[ix,]
-	          df <- reshape2::melt(df, id.vars="Group")
-	          g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group),
-	                                outlier.size = 0.1)
-	        }
-	          g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
-							   theme_minimal() + ggtitle(paste0("Gate: ", selection))	
-        
-	          suppressWarnings(g)
-	        }
-	        )
-	    })
-
-	    # Download Gate Information 
-	    selected_gate_data <- reactive({
-	      if (is.null(global$selection)){
-	        X <- data.frame(global$X, Gate = global$g)
-	        X <- as.matrix(X)
-	      } else{
-	        X <- as.matrix(global$X[global$g == global$selection,])
+        # Normalise individual FCS files
+        cat("Normalising dataset...\n")
+    
+				fcs <- fsApply(global$fcs_raw, function(x, cofactor=5)
+                 { 
+                   
+                   if (!any(is.na(pData(parameters(global$fcs_raw[[1]]))$desc))){ 
+				            colnames(x) <- paste0(global$fcs_raw@colnames, "_",
+                            pData(parameters(global$fcs_raw[[1]]))$desc)
+                   }else{
+                    colnames(x) <- global$fcs_raw@colnames
+                   } 
+                   
+                   expr <- exprs(x)
+								   expr <- asinh(expr / cofactor)
+								   expr <- expr[, input$channel_list] 
+								   exprs(x) <- expr
+								   return(x)
+                 }
+               )
+        # Create a concatenated expression matrix
+				global$X <- fsApply(fcs, exprs)
+	      
+        # Generate a Y variable if grouping information was supplied
+        if(!any(sapply(group, function(x) x ==""))){
+	        global$Y <- as.factor(rep(group, unlist(fsApply(fcs, nrow))))
+          print(unique(global$Y))
 	      }
+
+	      # Remove duplicates
+        duplicates <- duplicated(global$X)
+	      global$X <- global$X[!duplicates,]
+	      global$Y <- global$Y[!duplicates]
+        
+        # Run CYTORF
+	 			global$g <- cytorf(X = global$X,
+	                         Y = global$Y,
+	                         num.trees = input$ntrees,
+                           N = input$nearest_neighbour,
+							             sub.sample = input$sub_sample,
+	                         seed=input$seed,
+	                         verbose=TRUE)
+				
+        nclusters <- length(unique(global$g))
+
+	      cat("Generating coordinates...")
+        if (ncol(global$X) == 2){
+          global$coords <- global$X
+				} else {
+          
+          freq_table <- table(global$g$labels)
+          global$subsampling <- vector()
+          
+          set.seed(input$seed)
+          for (n in 1:length(freq_table)){
+            class_ix <- which(global$g$labels == n)
+            ix <- sample(class_ix, 100)
+            global$subsampling <- c(global$subsampling, ix)
+          }
+
+          x <- global$X[global$subsampling,]
+          y <- global$g$labels[global$subsampling]
+
+          terminal_nodes <- predict(global$g$model, x,
+                                    type = "terminalNodes")$prediction
+          p <- proximity_matrix(terminal_nodes)
+          a <- affinity_matrix(p, input$nearest_neighbour)
+          g <- graph_from_adjacency_matrix(a,
+                                                   mode = "undirected",
+                                                   weighted = TRUE, diag = FALSE)
+          names(y) <- 1:vcount(g)
+
+          # Weigh edges by community
+          weight.community=function(row, membership, weigth.within, weight.between){
+            if(membership[which(names(membership)==row[1])]==membership[which(names(membership)==row[2])]){
+              weight=weigth.within
+            } else{
+              weight=weight.between
+            }
+            return(weight)
+          }
+
+          E(g)$weight=apply(get.edgelist(g),1, weight.community, y, 10, 1)
+          xy <- layout.fruchterman.reingold(g, weights=E(g)$weight)
+					global$coords <- xy[,1:2]
+					colnames(global$coords) <- c("CytoRF.1", "CytoRF.2")
+				}
+
+	     cat("\n--FINISHED--\n")
       
-	      fcs <- new("flowFrame", exprs = X)
-	      fcs
-	    })
+      }
+    ) # End observe event RUN
+		
 
-	    all_gate_data <- reactive({
-	      X <- data.frame(global$X, Gate = global$g)
-	      X <- as.matrix(X)
-	      fcs <- new("flowFrame", exprs = X)
-	      fcs
-	    })
+    #------------------------------------ PLOTS
+	  # Cluster Plot
+    output$plot_cluster <- renderPlot(
+      {
+        shiny::validate(
+           need(!is.null(global$coords), "Run CytoRF to get started!")
+        )
 
-	    output$export_selected_gate_fcs <- renderUI({
-	      downloadButton("export_selected_gate_fcs_btn", "Export selected gates as FCS")
-	    })
+        getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+        colorCount <- length(unique(global$g$labels[global$subsampling]))
+        df <- data.frame(global$coords)
+        df$Gates <- as.factor(global$g$labels[global$subsampling])
+        suppressWarnings(
+          ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
+            xlab(colnames(global$coords)[1]) +
+				    ylab(colnames(global$coords)[2]) +
+				    scale_color_manual(values = getPalette(colorCount)) +
+				    theme(legend.position="none") + theme_minimal() + 
+	          ggtitle("CytoRF Gates")
+	      )
+			}
+    )
+ 
 
-	    output$export_selected_gate_fcs_btn <- downloadHandler(
-	      filename = function() paste0("CytoRF_Gate_", global$selection, ".fcs"),
-	      content = function(file) write.FCS(selected_gate_data(), file)
-	    )
-   
-	    output$export_all_gates_fcs <- renderUI({
-	      downloadButton("export_all_gates_fcs_btn", "Export all gates as FCS")
-	    })
-	    output$export_all_gates_fcs_btn <- downloadHandler(
-	      filename = "CytoRF_all_gates.fcs",
-	      content = function(file) write.FCS(all_gate_data(), file)
-	    )
-
-			# Render Channel Density plot
-	    observeEvent(input$plot_click, {
-			  output$plot_density <- renderPlot({	
+    # Channel Density plot
+	  observeEvent(input$plot_click,
+      {
+			  output$plot_density <- renderPlot(
+        { 
+          shiny::validate(
+            need(!is.null(global$coords), "")
+          )
 				  ix <- input$plot_click	
 			
 				  np <- data.frame(nearPoints(as.data.frame(global$coords),
-					   input$plot_click,
-					   xvar = colnames(global$coords)[1],
-					   yvar = colnames(global$coords)[2],
-					   threshold = 10, maxpoints = 1,
-					   addDist = FALSE))	
+                                      input$plot_click,
+                                      xvar = colnames(global$coords)[1],
+                                      yvar = colnames(global$coords)[2],
+                                      threshold = 10, maxpoints = 1,
+                                      addDist = FALSE))	
 				  ix <- as.numeric(rownames(np))	
 			
-				  gate <- global$g[ix]
+				  gate <- global$g$labels[global$subsampling[ix]]
 	        global$selection <- gate
 
-				  ix <- global$g == gate 
+				  ix <- global$g$labels[global$subsampling] == gate 
       
 				  g <- ggplot()
 	        if(is.null(global$Y)){
-	          df <- reshape2::melt(global$X[ix,])
+	          df <- reshape2::melt(global$X[global$subsampling[ix],])
 	          g <- g + geom_boxplot(data = df, aes(x=Var2, y=value), outlier.size = 0.1)
 	        } else{
-	          df <- data.frame(global$X, Group=global$Y)
+	          df <- data.frame(global$X[global$subsampling, ],
+                             Group=global$Y[global$subsampling])
 	          df <- df[ix,]
 	          df <- reshape2::melt(df, id.vars="Group")
 	          head(df)
 	          g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group),
 	                                outlier.size = 0.1)
 	        }
-	        g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
+	      
+          g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
 							  theme_minimal()	+ ggtitle(paste0("Gate: ", gate))
         
 	        suppressWarnings(g)
 			  })
 	    }
-	    )
-		
-			# Render Expression Plot
-			output$plot_expression <- renderPlot({
-				selected_gate_value <- global$X[,input$visualise_channel]
-			
-				jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
-								 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+	   )
 
-	
-				df <- data.frame(global$coords)	
+
+    # Render Expression Plot 
+		output$plot_expression <- renderPlot(
+      { 
+        shiny::validate(
+          need(!is.null(global$coords), "")
+        )
+
+		    selected_gate_value <- global$X[global$subsampling, input$visualise_channel]
+			
+        jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
+								                         "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+        
+        df <- data.frame(global$coords)	
 			
 	      suppressWarnings(
-	        ggplot(df, aes(x=df[,1], y=df[,2], color=selected_gate_value)) + geom_point() +
-				  xlab(colnames(global$coords)[1]) +
-				  ylab(colnames(global$coords)[2]) +
-				  scale_colour_gradientn(colours = jet.colors(7), name="Expression") +
-				  theme_minimal()
+	        ggplot(df, aes(x=df[,1], y=df[,2], color=selected_gate_value)) +
+            geom_point() +
+				    xlab(colnames(global$coords)[1]) +
+				    ylab(colnames(global$coords)[2]) +
+				    scale_colour_gradientn(colours = jet.colors(7), name="Expression") +
+				    theme_minimal()
 	      )
-			}, width=575)
+		  }, width=575)
+
+	  # Render Select Gate dropdown
+	  output$select_gate <- renderUI(
+      {
+	      selectInput("select_gate",
+	  							  "Visualise Gates",
+			  					  choices = global$g$labels,
+									  multiple = FALSE)
+	    }
+    )
+
+     # Feature Importance Plot    
+	  output$gate_predictions <- renderPlot(
+      {
+        shiny::validate(
+           need(!is.null(global$g), "")
+        )
+
+        if (!is.null(global$Y)){
+          x <- data.frame(Gate = as.factor(global$g$labels), Y=global$Y)
+          x <- model.matrix(Y~.-1, data=x)
+          x <- data.frame(x, Y=global$Y)
+          model <- ranger::ranger(data=x, dependent.variable.name="Y",
+	                                importance="impurity")
+          imp <- ranger::importance(model)
+          imp <- data.frame(Group=names(imp), Importance=imp)
+          suppressWarnings(
+                           ggplot(imp, aes(x=Group, y=Importance)) + 
+                                  geom_bar(stat="identity") +
+                                  xlab("") +
+                                  theme_minimal()
+                          )
+       
+	         }
+	       })
+
+    #----------------------------------- Results Callbacks
+	  observeEvent(input$select_gate,
+      {
+	      selection <- as.numeric(input$select_gate)
+	      ix <- global$g$labels[global$subsampling] == selection
+	      global$selection <- selection
+
+	      output$plot_density <- renderPlot(
+          {
+            shiny::validate(
+              need(!is.null(global$coords), "")
+            )
+
+	          g <- ggplot()
+	          if(is.null(global$Y)){
+	             df <- reshape2::melt(global$X[global$subsampling[ix], ])
+	             g <- g + geom_boxplot(data = df, aes(x=Var2, y=value),
+                                     outlier.size = 0.1)
+	            } else{
+	              df <- data.frame(global$X[global$subsampling, ], 
+                                 Group=global$Y[global$subsampling])
+	              df <- df[ix,]
+	              df <- reshape2::melt(df, id.vars="Group")
+	              g <- g + geom_boxplot(data=df, aes(x=variable, y=value, fill=Group),
+	                                    outlier.size = 0.1)
+	            }
+	            g <- g + xlab("") + ylab("Channel expression level") + coord_flip() +
+                theme_minimal() + ggtitle(paste0("Gate: ", selection))	
+        
+	            suppressWarnings(g)
+	         }
+	       )
+	     }
+     )
+
+	  # Download Gate Information 
+	  selected_gate_data <- reactive(
+      {
+	      if (is.null(global$selection)){
+	        X <- data.frame(global$X, Gate = global$g$labels)
+	        X <- as.matrix(X)
+	      } else{
+	        X <- as.matrix(global$X[global$g$labels == global$selection,])
+	      }
       
+	      fcs <- new("flowFrame", exprs = X)
+	      fcs
+	    }
+    )
 
-			# Render Cluster Explorer
-			output$cluster_explorer <- renderPlot({
-				getPalette = colorRampPalette(brewer.pal(9, "Set1"))
-				colorCount <- length(unique(global$g))
-	
-				df <- data.frame(global$coords)
-				df$Gates <- as.factor(global$g)
-			
-	      suppressWarnings(
-	        ggplot(df, aes(x=df[,1], y=df[,2], color=Gates)) + geom_point() +
-				  xlab(colnames(global$coords)[1]) +
-				  ylab(colnames(global$coords)[2]) +
-				  scale_color_manual(values = getPalette(colorCount)) +
-				  theme(legend.position="none") + theme_minimal()
-	      )
-			
-			})
-		
-			# Render Cluster Information text
-			output$cluster_info <- renderPrint({
-	
-				np <- data.frame(nearPoints(as.data.frame(global$coords),
-					   input$plot_click,
-					   xvar = colnames(global$coords)[1],
-					   yvar = colnames(global$coords)[2],
-					   threshold = 10, maxpoints = 1,
-					   addDist = FALSE))
+	  all_gate_data <- reactive(
+      {
+	      X <- data.frame(global$X, Gate = global$g$labels)
+	      X <- as.matrix(X)
+	      fcs <- new("flowFrame", exprs = X)
+	      fcs
+	    }
+    )
 
-				if (nrow(np)==0){
-					data.frame(np)
-				}else{
-					cluster <- global$g[as.numeric(rownames(np))]
-					members <- sum(global$g == cluster)
-					data.frame(np, Cluster=cluster, Members=members)
-				}
-			})
+	  output$export_selected_gate_fcs <- renderUI(
+      {
+	      downloadButton("export_selected_gate_fcs_btn", "Export selected gates as FCS")
+	    }
+    )
 
-			# Render marker heatmap
-			output$plot_heatmap <- renderPlot({
-				jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan",
-								 "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
-
-				summ <- aggregate(global$X, by=list(global$g), FUN=mean)
-				hc <- hclust(dist(t(summ[,-1])))
-				data <- summ[,-1]
-				data <- data[,hc$order]
-				data$Gate <- as.factor(summ$Group.1)
-				df <- reshape2::melt(data, id.vars="Gate")
-				ggplot(df, aes(x=Gate, y=variable, fill=value)) +
-					geom_tile() +
-					scale_fill_gradientn(colours = jet.colors(7), name="") +
-					ylab("") + theme_minimal()
-			}, height=600)
-	
-		})	
-}
+	  output$export_selected_gate_fcs_btn <- downloadHandler(
+      filename = function() paste0("CytoRF_Gate_", global$selection, ".fcs"),
+	    content = function(file) write.FCS(selected_gate_data(), file)
+	  )
+   
+	  output$export_all_gates_fcs <- renderUI({
+	    downloadButton("export_all_gates_fcs_btn", "Export all gates as FCS")
+	  })
+	  output$export_all_gates_fcs_btn <- downloadHandler(
+	    filename = "CytoRF_all_gates.fcs",
+	    content = function(file) write.FCS(all_gate_data(), file)
+	  )
+     
+  }
 )

@@ -2,7 +2,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-NumericMatrix proximity_matrix(NumericMatrix idx) {
+NumericMatrix rcpp_proximity_matrix(NumericMatrix idx) {
 	int nrow = idx.nrow(), ncol = idx.nrow();
 	NumericMatrix proximity(nrow, ncol);
 	
