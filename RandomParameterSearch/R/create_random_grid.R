@@ -5,7 +5,7 @@
 #' @param seed      random seed
 #' @export
 
-create_random_search <- function(nrounds = 100, params, seed = 1234){
+create_random_grid <- function(nrounds = 100, params, seed = 1234){
 
   space <- lapply(params, function(x){
                     if (class(x) == "integer"){
