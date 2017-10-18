@@ -4,12 +4,14 @@
 \alias{squares}
 \title{Squares}
 \usage{
-squares(predicted, reference)
+squares(predicted, reference, bins = 10)
 }
 \arguments{
 \item{predicted}{a vector of predicted class probabilities}
 
 \item{reference}{a vector (factor) of classes to be used as the tru results}
+
+\item{bins}{integer indicating number of bins to be used for histograms}
 }
 \description{
 Squares

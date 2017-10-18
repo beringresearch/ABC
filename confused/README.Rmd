@@ -1,0 +1,52 @@
+---
+title: "Improved visualisations of machine learning model performances"
+author: Ignat Drozdov
+date: October 18, 2017
+output:
+  md_document:
+        variant: markdown_github
+---
+
+
+# Installation
+
+The latest version can be installed through:
+
+``{r, eval=FALSE}
+devtools::install_github("beringresearch/ABC/confused")
+```
+
+# Example
+
+```{r}
+library(confused)
+library(rpart)
+library(mlbench)
+
+data(Soybean)
+Soybean$Class <- as.factor(as.numeric(Soybean$Class))
+levels(Soybean$Class)
+
+dim(Soybean)
+```
+
+Let's built a simple Random Forest classifier:
+
+```{r}
+Y <- Soybean[, 1]
+
+set.seed(123)
+trainIndex <- sample(seq_len(nrow(Soybean)), size = round(0.75 * nrow(Soybean)), replace = FALSE)
+
+train <- Soybean[trainIndex, ]
+test <- Soybean[-trainIndex, ]
+
+model <- rpart(Class~., data = train)
+yh <- predict(model, test)
+```
+
+Finally, visualise performance:
+
+```{r}
+squares(yh, test$Class)
+```
