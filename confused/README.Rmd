@@ -54,5 +54,5 @@ Finally, visualise performance:
 squares(yh, test$Class)
 ```
 
-All classes are represented with facets, whilst frequency distribution of probability estimates of each class instance is visualised as a histogram. It can be seen that our model is excellent in predicting classes *_7*____, _9_, _10_, and _17_.
+All classes are represented with facets, whilst frequency distribution of probability estimates of each class instance is visualised as a histogram. It can be seen that our model is excellent in predicting classes _7_, _9_, _10_, and _17_.
 
