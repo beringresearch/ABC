@@ -7,8 +7,13 @@ The latest version can be installed through:
 devtools::install_github("beringresearch/ABC/confused")
 ```
 
-Example
-=======
+Examples
+========
+
+Squares
+-------
+
+Squares is a visualisation technique developed by Microsoft to [support interactive performance analysis for multiclass classifiers](https://www.microsoft.com/en-us/research/publication/squares-supporting-interactive-performance-analysis-multiclass-classifiers/). Squares facilitates display of instance level distribution information, which is necessary for informative model selection and hyperparameter tuning.
 
 ``` r
 library(confused)
@@ -29,7 +34,7 @@ dim(Soybean)
 
     ## [1] 683  36
 
-Let's built a simple Random Forest classifier:
+Let's built a simple Rpart classifier:
 
 ``` r
 Y <- Soybean[, 1]
@@ -51,3 +56,5 @@ squares(yh, test$Class)
 ```
 
 ![](README_files/figure-markdown_github/squares-vis-1.png)
+
+All classes are represented with facets, whilst frequency distribution of probability estimates of each class instance is visualised as a histogram. It can be seen that our model is excellent in predicting classes \*\_7\*\_\_\_\_, *9*, *10*, and *17*.
