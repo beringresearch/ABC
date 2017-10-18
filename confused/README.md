@@ -3,7 +3,9 @@ Installation
 
 The latest version can be installed through:
 
-\`\`{r, eval=FALSE} devtools::install\_github("beringresearch/ABC/confused") \`\`\`
+``` r
+devtools::install_github("beringresearch/ABC/confused")
+```
 
 Example
 =======
@@ -48,4 +50,4 @@ Finally, visualise performance:
 squares(yh, test$Class)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-3-1.png)
+![](README_files/figure-markdown_github/squares-vis-1.png)

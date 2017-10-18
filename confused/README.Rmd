@@ -12,7 +12,7 @@ output:
 
 The latest version can be installed through:
 
-``{r, eval=FALSE}
+```{r, eval=FALSE}
 devtools::install_github("beringresearch/ABC/confused")
 ```
 
@@ -47,6 +47,6 @@ yh <- predict(model, test)
 
 Finally, visualise performance:
 
-```{r}
+```{r squares-vis, fig.height=5, fig.width=9}
 squares(yh, test$Class)
 ```
