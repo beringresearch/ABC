@@ -18,11 +18,6 @@ Squares is a visualisation technique developed by Microsoft to [support interact
 ``` r
 library(confused)
 library(rpart)
-```
-
-    ## Warning: package 'rpart' was built under R version 3.3.2
-
-``` r
 library(mlbench)
 
 data(Soybean)
@@ -60,6 +55,22 @@ Finally, visualise performance:
 squares(yh, test$Class)
 ```
 
+    ## Warning in if (colnames(predicted) != classes) stop("Predicted class
+    ## probbaility column names must match reference class levels"): the condition
+    ## has length > 1 and only the first element will be used
+
 ![](README_files/figure-markdown_github/squares-vis-1.png)
 
 All classes are represented with facets, whilst frequency distribution of probability estimates of each class instance is visualised as a histogram. It can be seen that our model is excellent in predicting classes *7*, *9*, *10*, and *17*.
+
+Confusion Matrix
+----------------
+
+A graphical representation of a confusion matrix. We retain class probabilities generated in previous section.
+
+``` r
+lbl <- colnames(yh)[apply(yh, 1, which.max)]
+confusion_matrix(lbl, test$Class)
+```
+
+![](README_files/figure-markdown_github/confusion-matrix-1.png)

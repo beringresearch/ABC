@@ -3,11 +3,10 @@
 #' @param predicted   a vector of predicted class probabilities
 #' @param reference   a vector (factor) of classes to be used as the tru results
 #' @param bins        integer indicating number of bins to be used for histograms
-#' @param threshold   numeric positive class threshold. Defaults to 1/nclasses
 #' @import ggplot2
 #' @export
 
-squares <- function(predicted, reference, bins = 10, threshold = 1/length(levels(reference))){
+squares <- function(predicted, reference, bins = 10){
 
   bering.colours <- c("#B1CDE1", "#4E77B1", "#BFDE8E", "#639F3A", "#E49998", "#C12022",
                       "#EDBD73", "#E47E1D", "#C3B1D4", "#603F96",
@@ -21,10 +20,16 @@ squares <- function(predicted, reference, bins = 10, threshold = 1/length(levels
     stop("This functions doesn't support > 20 classes at this time.")
   if (ncol(predicted) != length(classes))
     stop("Number of columns in predicted class probabilities does not match total number of classes.")
+  if (colnames(predicted) != classes)
+    stop("Predicted class probbaility column names must match reference class levels")
    
   label <- colnames(predicted)[apply(predicted, 1, which.max)]
   df <- data.frame(predicted, Reference = reference, Label = label,
                    check.names = FALSE)
+
+  df$Reference <- factor(df$Reference, levels = colnames(predicted))
+  df$Label <- factor(df$Label, levels = colnames(predicted))
+
   
   for (n in 1:length(classes)){
     df[df$Reference != classes[n],
@@ -32,17 +37,17 @@ squares <- function(predicted, reference, bins = 10, threshold = 1/length(levels
   }
 
   m <- reshape2::melt(df, id.vars = c("Reference", "Label"))
-  hline <- data.frame(Group = levels(reference))
+  m <- na.omit(m)
 
-  g <- ggplot() +
-        geom_histogram(data = m, aes(x = value, y=..ndensity.., fill = Label),
-                       bins = bins, na.rm=TRUE) +
-        geom_hline(data = m, aes(yintercept = 0, colour = variable, group = variable)) + 
-        geom_vline(xintercept = threshold, linetype = 2, colour = "grey", size = 0.2) +
+  g <- ggplot(m, aes(x = value, y = ..ndensity..)) +
+        geom_histogram(aes(fill = Label), bins = bins) +
+        geom_hline(aes(yintercept = 0, colour = Reference, group = Reference)) +  
         coord_flip() + 
-        scale_fill_manual(values = bering.colours[1:length(classes)]) +
-        scale_colour_manual(values = bering.colours[1:length(classes)]) +
-        facet_wrap(~variable) +
+        scale_fill_manual(values = bering.colours[1:length(classes)],
+                          limits = levels(m$Reference)) +
+        scale_colour_manual(values = bering.colours[1:length(classes)],
+                            limits = levels(m$Reference)) +
+        facet_wrap(~ Reference) +
         theme_classic() +
         theme(axis.line.x = element_line(colour = "white"),
               axis.line.y = element_line(colour = "white"),
