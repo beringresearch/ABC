@@ -21,7 +21,7 @@ squares <- function(predicted, reference, bins = 10){
   if (ncol(predicted) != length(classes))
     stop("Number of columns in predicted class probabilities does not match total number of classes.")
   if (any(!(colnames(predicted) %in% classes)))
-    stop("Predicted class probbaility column names must match reference class levels")
+    stop("Predicted class probability column names must match reference class levels")
    
   label <- colnames(predicted)[apply(predicted, 1, which.max)]
   df <- data.frame(predicted, Reference = reference, Label = label,
