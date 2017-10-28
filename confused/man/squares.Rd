@@ -4,7 +4,8 @@
 \alias{squares}
 \title{Squares}
 \usage{
-squares(predicted, reference, bins = 10)
+squares(predicted, reference, bins = 10,
+  threshold = 1/length(levels(reference)))
 }
 \arguments{
 \item{predicted}{a vector of predicted class probabilities}
@@ -12,6 +13,8 @@ squares(predicted, reference, bins = 10)
 \item{reference}{a vector (factor) of classes to be used as the tru results}
 
 \item{bins}{integer indicating number of bins to be used for histograms}
+
+\item{threshold}{numeric positive class threshold. Defaults to 1/nclasses}
 }
 \description{
 Squares
