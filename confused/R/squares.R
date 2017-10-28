@@ -16,27 +16,47 @@ squares <- function(predicted, reference, bins = 10){
                       
   classes <- levels(reference)
   
-  df <- data.frame(predicted, Reference = reference, check.names = FALSE)
+  if (length(classes) > 20)
+    stop("This functions doesn't support > 20 classes at this time.")
+  if (ncol(predicted) != length(classes))
+    stop("Number of columns in predicted class probabilities does not match total number of classes.")
+  if (colnames(predicted) != classes)
+    stop("Predicted class probbaility column names must match reference class levels")
+   
+  label <- colnames(predicted)[apply(predicted, 1, which.max)]
+  df <- data.frame(predicted, Reference = reference, Label = label,
+                   check.names = FALSE)
+
+  df$Reference <- factor(df$Reference, levels = colnames(predicted))
+  df$Label <- factor(df$Label, levels = colnames(predicted))
+
   
   for (n in 1:length(classes)){
     df[df$Reference != classes[n],
        which(colnames(df) == classes[n])] <- NA
   }
 
-  df <- reshape2::melt(df, id.vars = "Reference")
+  m <- reshape2::melt(df, id.vars = c("Reference", "Label"))
+  m <- na.omit(m)
 
-  g <- ggplot(df, aes(x=value, fill = Reference)) +
-        geom_histogram(aes(y=..density..), bins = bins, na.rm=TRUE) +
-        coord_flip() +
-        facet_wrap(~Reference, nrow = 1) + theme_bw() +
-        scale_fill_manual(values=bering.colours[1:length(classes)]) +
+  g <- ggplot(m, aes(x = value, y = ..ndensity..)) +
+        geom_histogram(aes(fill = Label), bins = bins) +
+        geom_hline(aes(yintercept = 0, colour = Reference, group = Reference)) +  
+        coord_flip() + 
+        scale_fill_manual(values = bering.colours[1:length(classes)],
+                          limits = levels(m$Reference)) +
+        scale_colour_manual(values = bering.colours[1:length(classes)],
+                            limits = levels(m$Reference)) +
+        facet_wrap(~ Reference) +
         theme_classic() +
-        theme(axis.line.x = element_line(color="white"),
+        theme(axis.line.x = element_line(colour = "white"),
+              axis.line.y = element_line(colour = "white"),
               axis.ticks.x = element_blank(),
-              axis.text.x = element_text(colour="white"),
+              axis.ticks.y = element_blank(),
+              axis.text.x = element_text(colour = "white"),
               strip.background = element_blank(),
-              legend.position = "none") +
-         ylab("") + xlab("Prediction Score")
+              legend.position = "none") + 
+        ylab("") + xlab("Prediction Score")
    
   return(g)  
 }
