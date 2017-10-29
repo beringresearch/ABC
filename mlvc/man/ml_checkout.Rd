@@ -4,10 +4,10 @@
 \alias{ml_checkout}
 \title{Checkout a model and associated data files from version control}
 \usage{
-ml_checkout(title, version)
+ml_checkout(repo, version)
 }
 \arguments{
-\item{title}{character string of a model repository}
+\item{repo}{character string of a model repository}
 
 \item{version}{character string of the specific version}
 }

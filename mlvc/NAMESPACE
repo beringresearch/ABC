@@ -3,7 +3,7 @@
 S3method(print,mlvc)
 export(ml_add)
 export(ml_checkout)
-export(ml_init)
+export(ml_delete)
 export(ml_list)
 import(DBI)
 import(RSQLite)

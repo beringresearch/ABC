@@ -1,18 +1,18 @@
 #' Checkout a model and associated data files from version control
 #'
-#' @param  title    character string of a model repository
+#' @param  repo     character string of a model repository
 #' @param  version  character string of the specific version
 #' @import DBI RSQLite
 #' @export
 
-ml_checkout <- function(title, version){
+ml_checkout <- function(repo, version){
   # Get path to mlvc database
   HOME <- Sys.getenv("HOME")
   mlvc_dir <- file.path(HOME, ".mlvc") 
   
   mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, "mlvc.sqlite"))
   
-  object <- dbReadTable(mlvc, name = title, check.names = F) 
+  object <- dbReadTable(mlvc, name = repo, check.names = F) 
   raw <- object[, version]
 
   res <- lapply(raw, 'unserialize')
@@ -33,6 +33,7 @@ ml_checkout <- function(title, version){
 print.mlvc <- function(x){
   cat("MLVC object\n",
       "Version: ", x$version, "\n",
+      "Comment: ", x$comment, "\n",
       "Model accessor: $model\n",
       "Data accessor: $X\n",
       "Response accessor: $Y\n")

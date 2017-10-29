@@ -1,0 +1,58 @@
+---
+title: "Machine Learning Version Control for R"
+author: Ignat Drozdov
+date: October 29, 2017
+output:
+  md_document:
+        variant: markdown_github
+---
+
+
+# Installation
+
+The latest version can be installed through:
+
+```{r, eval=FALSE}
+devtools::install_github("beringresearch/ABC/mlvc")
+```
+
+# Examples
+Let's start by building a 100 tree Random Forest model using the Iris dataset and commiting it to MLVC repository.
+
+```{r, eval=TRUE}
+library(mlvc)
+library(randomForest)
+
+rf <- randomForest(Species~., data = iris, ntrees = 100)
+rf
+
+ml_add(model = rf, X = iris, Y = NULL, repo = "iris", comment = "Random Forest model with 100 trees")
+```
+
+```{r, eval = TRUE, include = FALSE}
+Sys.sleep(10)
+```
+
+*ml_add* requires a model, training set, response variable, repository title, and a brief commit message. All variables are serialised and inserted into a local SQLite database.
+
+Let's retrain the Random Forest model, increasing the number of trees.
+
+```{r, eval=TRUE}
+rf <- randomForest(Species~., data = iris, ntrees = 500)
+rf
+
+ml_add(model = rf, X = iris, Y = NULL, repo = "iris", comment = "Random Forest model with 500 trees")
+```
+
+Our __iris__ repository should contain two models with 100 and 500 trees respectively:
+
+```{r, eval=TRUE}
+ml_list()
+```
+
+Each model is has a unique identifier that relates directly to its creation time stamp. To access the model:
+
+```{r, eval=TRUE}
+object <- ml_checkout(repo = "iris", version = names(ml_list()$iris)[2])
+object
+```

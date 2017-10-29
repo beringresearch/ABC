@@ -3,12 +3,12 @@
 #' @param model     model object
 #' @param X         data.frame containing training data
 #' @param Y         vector containing response data
-#' @param title     character title of the model-data environment
+#' @param repo     character title of the model-data repository
 #' @param comment   a brief description associated with the commit
 #' @import RSQLite DBI
 #' @export
 
-ml_add <- function(model, X, Y, title, comment = ""){
+ml_add <- function(model, X, Y, repo, comment = ""){
   
   # Get path to mlvc database
   HOME <- Sys.getenv("HOME")
@@ -25,17 +25,17 @@ ml_add <- function(model, X, Y, title, comment = ""){
   
   # Check if the table exists
   tables <- dbListTables(mlvc)
-  exists <- title %in% tables
+  exists <- repo %in% tables
   
   if(!exists){
-    dbWriteTable(conn=mlvc, name=title, value=object)
+    dbWriteTable(conn=mlvc, name=repo, value=object)
   }else{ 
       # Insert a new empty column
-      query <- paste0("ALTER TABLE ", title, " ADD COLUMN '", colnames(object)[1], "' TEXT")
+      query <- paste0("ALTER TABLE ", repo, " ADD COLUMN '", colnames(object)[1], "' TEXT")
       out <- capture.output(suppressWarnings(dbGetQuery(mlvc, query)))
 
       # Populate new column with data
-      query <- paste0("UPDATE ", title, " SET '",
+      query <- paste0("UPDATE ", repo, " SET '",
                       colnames(object)[1], "' = :",
                       colnames(object)[1], " where id = :id")
       out <- capture.output(suppressWarnings(dbExecute(mlvc, query, object)))

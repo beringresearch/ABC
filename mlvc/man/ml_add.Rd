@@ -4,7 +4,7 @@
 \alias{ml_add}
 \title{Add a model and training data to database}
 \usage{
-ml_add(model, X, Y, title, comment = "")
+ml_add(model, X, Y, repo, comment = "")
 }
 \arguments{
 \item{model}{model object}
@@ -13,7 +13,7 @@ ml_add(model, X, Y, title, comment = "")
 
 \item{Y}{vector containing response data}
 
-\item{title}{character title of the model-data environment}
+\item{repo}{character title of the model-data repository}
 
 \item{comment}{a brief description associated with the commit}
 }
