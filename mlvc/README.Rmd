@@ -23,7 +23,7 @@ Let's start by building a 100 tree Random Forest model using the Iris dataset an
 library(mlvc)
 library(randomForest)
 
-rf <- randomForest(Species~., data = iris, ntrees = 100)
+rf <- randomForest(Species~., data = iris, ntree = 100)
 rf
 
 ml_add(model = rf, X = iris, Y = NULL, repo = "iris", comment = "Random Forest model with 100 trees")
@@ -38,7 +38,7 @@ Sys.sleep(10)
 Let's retrain the Random Forest model, increasing the number of trees.
 
 ```{r, eval=TRUE}
-rf <- randomForest(Species~., data = iris, ntrees = 500)
+rf <- randomForest(Species~., data = iris, ntree = 500)
 rf
 
 ml_add(model = rf, X = iris, Y = NULL, repo = "iris", comment = "Random Forest model with 500 trees")
