@@ -27,12 +27,12 @@ rf
     ##                      Number of trees: 100
     ## No. of variables tried at each split: 2
     ## 
-    ##         OOB estimate of  error rate: 4.67%
+    ##         OOB estimate of  error rate: 4%
     ## Confusion matrix:
     ##            setosa versicolor virginica class.error
     ## setosa         50          0         0        0.00
     ## versicolor      0         47         3        0.06
-    ## virginica       0          4        46        0.08
+    ## virginica       0          3        47        0.06
 
 ``` r
 ml_add(model = rf, X = iris, Y = NULL, repo = "iris", comment = "Random Forest model with 100 trees")
@@ -76,18 +76,10 @@ ml_list()
 ```
 
     ## $iris
-    ## 323031372d31302d32392031303a32393a3336 
-    ##                  "2017-10-29 10:29:36" 
-    ## 323031372d31302d32392031303a32393a3436 
-    ##                  "2017-10-29 10:29:46" 
-    ## 323031372d31302d32392031303a33343a3032 
-    ##                  "2017-10-29 10:34:02" 
-    ## 323031372d31302d32392031303a33343a3132 
-    ##                  "2017-10-29 10:34:12" 
-    ## 323031372d31302d32392031303a33363a3137 
-    ##                  "2017-10-29 10:36:17" 
-    ## 323031372d31302d32392031303a33363a3237 
-    ##                  "2017-10-29 10:36:27"
+    ## 323031372d31302d32392031303a33373a3134 
+    ##                  "2017-10-29 10:37:14" 
+    ## 323031372d31302d32392031303a33373a3234 
+    ##                  "2017-10-29 10:37:24"
 
 Each model is has a unique identifier that relates directly to its creation time stamp. To access the model:
 
@@ -97,7 +89,7 @@ object
 ```
 
     ## MLVC object
-    ##  Version:  2017-10-29 10:29:46 
+    ##  Version:  2017-10-29 10:37:24 
     ##  Comment:  Random Forest model with 500 trees 
     ##  Model accessor: $model
     ##  Data accessor: $X
