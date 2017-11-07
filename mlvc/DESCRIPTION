@@ -1,6 +1,6 @@
 Package: mlvc
 Title: Version Control Machine Learning Models and Datafiles 
-Version: 0.0.0.9
+Version: 0.0.1.0
 Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
 Description: A system to manage and store changes to machine learning models and
              associated training datasets using a local SQLite database. 
