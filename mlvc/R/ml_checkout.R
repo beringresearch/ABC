@@ -10,7 +10,7 @@ ml_checkout <- function(repo, version){
   HOME <- Sys.getenv("HOME")
   mlvc_dir <- file.path(HOME, ".mlvc") 
   
-  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, "mlvc.sqlite"))
+  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, paste0(repo, ".sqlite")))
   
   object <- dbReadTable(mlvc, name = repo, check.names = F) 
   raw <- object[, version]

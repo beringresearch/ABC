@@ -7,23 +7,32 @@ ml_list <- function(){
    
   # Get path to mlvc database
   HOME <- Sys.getenv("HOME")
-  mlvc_dir <- file.path(HOME, ".mlvc")  
-  
-  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, "mlvc.sqlite"))
+  mlvc_dir <- file.path(HOME, ".mlvc")
 
-  tables <- dbListTables(mlvc) 
-  fields <- lapply(tables, function(x) dbListFields(mlvc, x))
-  names(fields) <- tables
+  repo <- tools::file_path_sans_ext(list.files(path = mlvc_dir, pattern = "\\.sqlite$"))
 
-  # Remove id column
-  fields <- lapply(fields, function(x) x[-grep("id", x)])
+  res <- sapply(repo, FUN = function(x){
+    mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, paste0(x, ".sqlite")))
+
+    tables <- dbListTables(mlvc) 
+    fields <- lapply(tables, function(x) dbListFields(mlvc, x))
+    names(fields) <- tables
+
+    # Remove id column
+    fields <- lapply(fields, function(x) x[-grep("id", x)])
   
-  # Unhash column names
-  meta <- lapply(fields, function(x) sapply(x, .unhash))
+    # Unhash column names
+    meta <- lapply(fields, function(x) sapply(x, .unhash))
  
-  dbDisconnect(mlvc) 
+    dbDisconnect(mlvc) 
 
-  return(meta)
+    return(meta)
+    }
+  )
+
+  names(res) <- repo
+
+  return(res)
 }
 
 .unhash <- function(x){ 

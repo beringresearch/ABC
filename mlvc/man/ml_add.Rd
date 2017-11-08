@@ -4,7 +4,7 @@
 \alias{ml_add}
 \title{Add a model and training data to database}
 \usage{
-ml_add(model, X, Y, repo, comment = "")
+ml_add(model, X = NULL, Y = NULL, repo, comment = "")
 }
 \arguments{
 \item{model}{model object}
