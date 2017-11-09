@@ -27,8 +27,8 @@ squares <- function(predicted, reference, bins = 10){
   df <- data.frame(predicted, Reference = reference, Label = label,
                    check.names = FALSE)
 
-  df$Reference <- factor(df$Reference, levels = colnames(predicted))
-  df$Label <- factor(df$Label, levels = colnames(predicted))
+  df$Reference <- factor(df$Reference, levels = order(classes))
+  df$Label <- factor(df$Label, levels = order(classes))
 
   
   for (n in 1:length(classes)){

@@ -16,7 +16,6 @@ beads <- function(predicted, reference){
   
   if (length(classes) > 20)
     stop("This functions doesn't support > 20 classes at this time.")
-
   if (ncol(predicted) != length(classes))
     stop("Number of columns in predicted class probabilities does not match total number of classes.")
   if (any(!(colnames(predicted) %in% classes)))
@@ -26,8 +25,8 @@ beads <- function(predicted, reference){
   df <- data.frame(predicted, Reference = reference, Label = label,
                   check.names = FALSE)
 
-  df$Reference <- factor(df$Reference, levels = rev(classes))
-  df$Label <- factor(df$Label, levels = rev(classes))
+  df$Reference <- factor(df$Reference, levels = classes)
+  df$Label <- factor(df$Label, levels = classes)
 
 
   for (n in 1:length(classes)){
@@ -41,7 +40,7 @@ beads <- function(predicted, reference){
 
   g <- ggplot(m, aes(x = value, y = Reference, col = Label)) +
        geom_point(position="jitter") +
-       scale_colour_manual(values = bering.colours[1:length(classes)]) +
+       scale_colour_manual(values = bering.colours[1:length(classes)], limits = classes) +
        ylab("") +  xlab("Prediction Score") +
        theme_classic() +
        scale_x_reverse() +
