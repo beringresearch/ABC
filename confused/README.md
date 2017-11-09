@@ -59,6 +59,17 @@ squares(yh, test$Class)
 
 All classes are represented with facets, whilst frequency distribution of probability estimates of each class instance is visualised as a histogram. It can be seen that our model is excellent in predicting classes *7*, *9*, *10*, and *17*.
 
+Beads
+-----
+
+Similar approach as the Squares plot, but each class is visualised along a vertical axis to facilitate cross-class comparisons.
+
+``` r
+beads(yh, test$Class)
+```
+
+![](README_files/figure-markdown_github/unnamed-chunk-4-1.png)
+
 Confusion Matrix
 ----------------
 
