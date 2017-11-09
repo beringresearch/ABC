@@ -26,8 +26,8 @@ beads <- function(predicted, reference){
   df <- data.frame(predicted, Reference = reference, Label = label,
                   check.names = FALSE)
 
-  df$Reference <- factor(df$Reference, levels = colnames(predicted))
-  df$Label <- factor(df$Label, levels = colnames(predicted))
+  df$Reference <- factor(df$Reference, levels = rev(classes))
+  df$Label <- factor(df$Label, levels = rev(classes))
 
 
   for (n in 1:length(classes)){
@@ -39,8 +39,8 @@ beads <- function(predicted, reference){
   m <- na.omit(m)
 
 
-  g <- ggplot(m, aes(x = value, y = Label, col = Reference)) +
-       geom_point() +
+  g <- ggplot(m, aes(x = value, y = Reference, col = Label)) +
+       geom_point(position="jitter") +
        scale_colour_manual(values = bering.colours[1:length(classes)]) +
        ylab("") +  xlab("Prediction Score") +
        theme_classic() +
