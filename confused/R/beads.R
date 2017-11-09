@@ -44,6 +44,7 @@ beads <- function(predicted, reference){
        scale_colour_manual(values = bering.colours[1:length(classes)]) +
        ylab("") +  xlab("Prediction Score") +
        theme_classic() +
+       scale_x_reverse() +
        theme(axis.text.y = element_text(face="bold", color = bering.colours[1:length(classes)]),
              panel.grid.major.y = element_line(colour = "grey", linetype = 2),
              legend.position = "none")
