@@ -18,6 +18,11 @@ Squares is a visualisation technique developed by Microsoft to [support interact
 ``` r
 library(confused)
 library(rpart)
+```
+
+    ## Warning: package 'rpart' was built under R version 3.3.2
+
+``` r
 library(mlbench)
 
 data(Soybean)
