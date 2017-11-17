@@ -8,13 +8,14 @@
 #' @import RSQLite DBI
 #' @export
 
-ml_add <- function(model, X, Y, repo, comment = ""){
+ml_add <- function(model, X=NULL, Y=NULL, repo, comment = ""){
   
   # Get path to mlvc database
   HOME <- Sys.getenv("HOME")
   mlvc_dir <- file.path(HOME, ".mlvc") 
-   
-  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, "mlvc.sqlite"))
+  
+
+  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, paste0(repo, ".sqlite")))
   
   # Attempt to serialize the model
   cat("Storing model and data files...")

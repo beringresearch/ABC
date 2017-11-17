@@ -10,7 +10,7 @@ ml_delete <- function(repo, version){
   HOME <- Sys.getenv("HOME")
   mlvc_dir <- file.path(HOME, ".mlvc") 
   
-  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, "mlvc.sqlite"))
+  mlvc <- dbConnect(SQLite(), file.path(mlvc_dir, paste0(repo, ".sqlite")))
 
   dbRemoveTable(mlvc, repo)
   

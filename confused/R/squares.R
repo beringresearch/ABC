@@ -1,7 +1,7 @@
 #' Squares
 #'
-#' @param predicted   a vector of predicted class probabilities
-#' @param reference   a vector (factor) of classes to be used as the tru results
+#' @param predicted   a matrix of predicted class probabilities
+#' @param reference   a vector (factor) of classes to be used as the true result
 #' @param bins        integer indicating number of bins to be used for histograms
 #' @import ggplot2
 #' @export
@@ -27,8 +27,8 @@ squares <- function(predicted, reference, bins = 10){
   df <- data.frame(predicted, Reference = reference, Label = label,
                    check.names = FALSE)
 
-  df$Reference <- factor(df$Reference, levels = colnames(predicted))
-  df$Label <- factor(df$Label, levels = colnames(predicted))
+  df$Reference <- factor(df$Reference, levels = sort(classes))
+  df$Label <- factor(df$Label, levels = sort(classes))
 
   
   for (n in 1:length(classes)){

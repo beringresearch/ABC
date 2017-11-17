@@ -1,7 +1,7 @@
 ---
 title: "Improved visualisations of machine learning model performances"
 author: Ignat Drozdov
-date: October 18, 2017
+date: November 9, 2017
 output:
   md_document:
         variant: markdown_github
@@ -55,6 +55,14 @@ squares(yh, test$Class)
 ```
 
 All classes are represented with facets, whilst frequency distribution of probability estimates of each class instance is visualised as a histogram. It can be seen that our model is excellent in predicting classes _7_, _9_, _10_, and _17_.
+
+
+## Beads
+Similar approach as the Squares plot, but each class is visualised along a vertical axis to facilitate cross-class comparisons.
+
+```{r}
+beads(yh, test$Class)
+```
 
 ## Confusion Matrix
 A graphical representation of a confusion matrix. We retain class probabilities generated in previous section.
