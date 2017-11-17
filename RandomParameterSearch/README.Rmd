@@ -69,7 +69,7 @@ search <- random_search(func, grid = grid)
 head(search)
 ```
 
-```{r}
+```{r pairs-plot}
 library(ggplot2)
 library(GGally)
 

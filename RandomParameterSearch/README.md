@@ -92,4 +92,4 @@ library(GGally)
 ggpairs(search)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-6-1.png)
+![](README_files/figure-markdown_github/pairs-plot-1.png)
