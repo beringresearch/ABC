@@ -45,7 +45,7 @@ Now let's set up our search space:
 ```{r}
 params <- list(ntree = c(1L, 500L),
                mtry = c(1L, 4L))
-grid <- create_random_grid(nrounds = 10, params = params, seed = 1234)
+grid <- create_random_grid(nrounds = 100, params = params, seed = 1234)
 grid
 ```
 

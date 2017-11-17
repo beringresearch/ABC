@@ -40,15 +40,22 @@ Now let's set up our search space:
 ``` r
 params <- list(ntree = c(1L, 500L),
                mtry = c(1L, 4L))
-grid <- create_random_grid(nrounds = 10, params = params, seed = 1234)
+grid <- create_random_grid(nrounds = 100, params = params, seed = 1234)
 grid
 ```
 
     ## $ntree
-    ##  [1] 476  61 110 457 473 140  62 399 373 458
+    ##   [1] 476  61 110 457 473 140  62 399 373 458 498 472 244 142 126 252 249
+    ##  [18] 160 482 318  64 212 458 234 455 299 316 435 252 492 163 241 179 314
+    ##  [35] 371 283 491 289 220 115  42 426 118 495 301 500 188 278 215 288 217
+    ##  [52] 113  43 319 216  37 402 163 379 293 355 214 172 380 213 281  59 152
+    ##  [69] 240 173 301  39 478  12 421 317 156 372 320 497  65 442 406 411 418
+    ##  [86] 367 492 320 331 265 159 384 264 367 154 203 103 493 284 141
     ## 
     ## $mtry
-    ##  [1] 4 4 2 2 2 3 2 2 4 3
+    ##   [1] 1 4 3 4 3 3 2 4 2 1 2 2 1 2 4 2 3 2 4 3 1 4 3 1 3 2 2 4 2 1 1 3 4 2 4
+    ##  [36] 3 4 4 3 3 2 2 1 3 2 1 3 3 4 1 3 2 1 1 3 1 1 3 2 4 2 4 1 3 4 3 2 2 2 2
+    ##  [71] 4 4 3 2 2 2 3 4 3 2 4 1 3 4 3 1 3 2 2 4 3 2 4 2 1 4 3 4 4 3
 
 And a function that we wish to evaluate:
 
@@ -71,11 +78,11 @@ head(search)
 ```
 
     ##   ntree mtry   .output
-    ## 1   476    4 0.9473684
+    ## 1   476    1 0.9473684
     ## 2    61    4 0.9473684
-    ## 3   110    2 0.9473684
-    ## 4   457    2 0.9473684
-    ## 5   473    2 0.9473684
+    ## 3   110    3 0.9473684
+    ## 4   457    4 0.9473684
+    ## 5   473    3 0.9473684
     ## 6   140    3 0.9473684
 
 ``` r
@@ -84,11 +91,5 @@ library(GGally)
 
 ggpairs(search)
 ```
-
-    ## Warning in cor(x, y, method = method, use = use): the standard deviation is
-    ## zero
-
-    ## Warning in cor(x, y, method = method, use = use): the standard deviation is
-    ## zero
 
 ![](README_files/figure-markdown_github/unnamed-chunk-6-1.png)
