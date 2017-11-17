@@ -7,7 +7,7 @@
 #' @importFrom pbapply pbapply
 #' @export
 
-random_search <- function(grid, FUN, maximise = FALSE, verbose = FALSE){
+random_search <- function(grid, FUN, maximise = FALSE){
 
   grid_df <- as.data.frame(grid, check.names = FALSE)
 
