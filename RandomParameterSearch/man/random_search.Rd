@@ -4,7 +4,7 @@
 \alias{random_search}
 \title{Search along a random search grid}
 \usage{
-random_search(grid, FUN, maximise = FALSE, verbose = FALSE)
+random_search(grid, FUN, maximise = FALSE)
 }
 \arguments{
 \item{grid}{random search grid}
@@ -13,8 +13,6 @@ random_search(grid, FUN, maximise = FALSE, verbose = FALSE)
 
 \item{maximise}{boolean value indicate weather parameters that maximise a function
 should be selected. Defaults to FALSE}
-
-\item{verbose}{boolean value that controls output verbosity. Defaults to FALSE.}
 }
 \description{
 Search along a random search grid
