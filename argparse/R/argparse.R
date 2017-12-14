@@ -25,7 +25,7 @@ argparse <- R6Class(
     
     add_argument = function(name, type, help=""){
 
-      if( !(type %in% c("numeric", "charager", "logical")))
+      if( !(type %in% c("numeric", "character", "logical")))
         stop("type must be one of 'numeric', 'character', or 'logical'")
       
       self$args <- c(self$args, name)
