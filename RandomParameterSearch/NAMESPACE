@@ -2,4 +2,4 @@
 
 export(create_random_grid)
 export(random_search)
-importFrom(pbapply,pbapply)
+importFrom(pbapply,pblapply)

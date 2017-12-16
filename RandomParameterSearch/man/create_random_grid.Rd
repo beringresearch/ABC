@@ -7,7 +7,7 @@
 create_random_grid(nrounds = 100, params, seed = 1234)
 }
 \arguments{
-\item{nrounds}{number of random iterations}
+\item{nrounds}{number of random samples from continuous hyperparameters}
 
 \item{params}{a list of parameters with low and high values}
 
