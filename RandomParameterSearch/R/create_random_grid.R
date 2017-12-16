@@ -1,11 +1,13 @@
 #' Create a Random Search Space
 #'
-#' @param nrounds   number of random samples from continuous hyperparameters
+#' @param nrounds   number of random samples 
 #' @param params    a list of parameters with low and high values
 #' @param seed      random seed
 #' @export
 
 create_random_grid <- function(nrounds = 100, params, seed = 1234){
+  
+  set.seed(seed)
 
   space <- lapply(params, function(x){
                     if (length(x) > 1){
@@ -14,16 +16,17 @@ create_random_grid <- function(nrounds = 100, params, seed = 1234){
                       } else if(typeof(x) == "double"){
                         res <- runif(n = nrounds, min = min(x), max = max(x)) 
                       } else if(typeof(x) == "character"){
-                        res <- x
+                        ix <- sample(x = 1:length(x), size = nrounds, replace = TRUE) 
+                        res <- x[ix] 
                       } 
                     }else{
-                      res <- x 
+                      res <- rep(x, nrounds)             
                     }
                     return(res)
                 })
 
-  res <- expand.grid(space, stringsAsFactors = FALSE)
-
+  #res <- expand.grid(space, stringsAsFactors = FALSE)
+  res <- data.frame(space, stringsAsFactors = FALSE)
   return(res)
 
 }
