@@ -2,28 +2,30 @@
 #'
 #' @param X 		      a data matrix for the flow cytometry data, it needs to have
 #' 			              at least two columns.
-#' @param Y 		      a factor vector of phenotypes (optional).
 #' @param channels 	  a vector of two channel names or their corresponding indices.
-#' 			              When it is left unspecified, all the variables will be included
-#' 			              in clustering.
-#' @param num.trees 	number of trees to grow in a Random Forest.
+#' 			              When it is left unspecified, all the variables will be
+#'                    included in clustering.
+#' @param num_trees   number of trees
+#'
 #' @param N 	        number of neighbours for calculation of affinity matrix.
-#' @param sub.sample  double indicating a fraction random elements to chose for
-#'                    calculation of proximity matrix. Range is 0-1.
-#'                    matrix calculation
+#' @param subsample   double indicating a fraction of random observations to
+#'                    chose for calculation of proximity matrix. Range is 0-1.
+#'                    This parameter can be used to speed up model construction#'                    by sampling at random a small partition of the dataset.
 #' @param seed 		    random seed that controls clustering reproducibility
 #' @param verbose 	  boolean level of verbosity (default: FALSE)
+#' @param ...         additional parameters to be passed to ranger function
 #' @useDynLib cytorf
 #' @importFrom Rcpp sourceCpp
 #' @importFrom igraph graph_from_adjacency_matrix cluster_louvain membership
 #' @import ranger
 #' @export
 
-cytorf <- function(X, Y=NULL, channels=NULL,
-                   num.trees=125, N=10,
-                   sub.sample = 0.01,
+cytorf <- function(X, Y=NULL, channels=NULL,                 
+                   num_trees = 150,
+                   N=5,
+                   subsample = 0.25, 
                    seed=1234,
-                   verbose=FALSE){
+                   verbose=FALSE, ...){
   
   if (!is.null(channels))
     X <- X[,channels]
@@ -34,127 +36,57 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	if (is.null(colnames(X)))
     stop("X values must contain unique column names.")
   
-  # Subsampling error handling 
-  if (sub.sample < 0)
-    stop("sub.sample should be a positive number.")
-  if (sub.sample <= 1 & is.null(Y))
-    sub.sample <- round(sub.sample * nrow(X))
-  if (sub.sample > nrow(X))
+  # Subsampling processing and error handling 
+  if (subsample < 0)
+    stop("subsample should be a positive number.")
+  if (subsample <= 1) 
+    subsample <- floor(subsample * nrow(X))
+  if (subsample > nrow(X))
     stop("Trying to subsample on more events than there are rows in X.")
 
   
 	# Generate synthetic data for unsupervised prediction
-	if (is.null(Y)){
-    set.seed(seed)
-    # Sub sample in class-independent fashion
-    subsampling_index <- sample(1:nrow(X), sub.sample, replace = FALSE)
-    train <- data.frame(X[subsampling_index, ], check.names = FALSE)
-    train$Y <- Y[subsampling_index, ]
+  set.seed(seed) 
+  subsampling_index <- sample(1:nrow(X), subsample, replace = FALSE)
 
-    # Generate a synthetic dataset
-    n_obs <- nrow(train)
-    synth_X <- apply(train, 2, function(x)
-                     {
-                       sample(x, n_obs, replace = TRUE)
-                     }
-    )
-    train <- data.frame(rbind(train, synth_X), check.names = FALSE)
-    train$Y <- as.factor(rep(c(1, 2), each = nrow(train)/2))
+  train <- data.frame(X[subsampling_index, ], check.names = FALSE)
+  train$Y <- Y[subsampling_index, ]
 
-  } else{
+  # Generate a synthetic dataset
+  n_obs <- nrow(train) 
+  synth_X <- apply(train, 2, function(x) runif(n_obs, min = min(x), max = max(x)))
 
-    # Check that length of Y matches to number of rows in X
-    if (length(Y) != nrow(X))
-      stop("Length of Y does not equal to number of rows in X.")
+  train <- data.frame(rbind(train, synth_X), check.names = FALSE)
+  train$Y <- as.factor(rep(c(1, 2), each = nrow(train)/2))
 
-    if (!is.factor(Y))
-      Y <- factor(Y, levels = unique(Y))
-
-    if (sub.sample <= 1){
-      freq_table <- round(table(Y) * sub.sample)
-    }else {
-      freq_table <- rep(sub.sample, length(levels(Y)))
-    }
-
-    subsampling_index <- vector()
-    for (n in 1:length(freq_table)){
-      class_index <- which(Y == levels(Y)[n])
-      ix <- sample(class_index, freq_table[n])
-      subsampling_index <- c(subsampling_index, ix)
-    }
-
-    train <- data.frame(X[subsampling_index, ], check.names = FALSE)
-    train$Y <- Y[subsampling_index]
-  }
-
-	if (verbose) cat("Building Random Forest model...\n")
-	# Build a random forest model and extract terminal nodes	
-	set.seed(seed)
-	model <- ranger(data=train, dependent.variable.name="Y", num.trees=num.trees)
-
-  if (verbose) cat("Assigning terminal nodes...\n") 
-	terminal_nodes <- predict(model, X[subsampling_index, ],
-                            type="terminalNodes")$predictions
-
-	# Compute proximity matrix
-	if (verbose) cat("Calculating proximity matrix...\n")
-	proximity <- proximity_matrix(terminal_nodes)
-  pr <- proximity/num.trees
-    
-  # Compute affinity matrix
-  if (verbose) cat("Calculating affinity matrix...\n")
-  affinity <- affinity_matrix(pr, N)
-    
+  
+  # Generate affinity matrix
+  affinity <- compute_affinity_matrix(train,
+                                      X[subsampling_index, ],
+                                      num_trees, N, #...,
+                                      verbose = verbose, seed = seed)
+ 
+  affinity <- exp(affinity) 
+  
 	# Louvain clustering
 	if (verbose) cat("Clustering objects...\n")	
-	g <- graph_from_adjacency_matrix(affinity, mode="undirected", weighted=T, diag=F)
+	g <- graph_from_adjacency_matrix(affinity, mode="undirected",
+                                   weighted=T, diag=F)
 	cl <- cluster_louvain(g)
 	groups <- as.numeric(membership(cl)) 
 
-  df <- data.frame(X[subsampling_index,], Y = as.factor(groups), check.names = FALSE)
-  model <- ranger(data = df, dependent.variable.name = "Y", num.trees = num.trees)
+  # Extrapolate smaller model to full dataset
+  df <- data.frame(train[, 1:ncol(X)],
+                   Y = as.factor(groups), check.names = FALSE)
+   
+  model <- ranger(data = df, dependent.variable.name = "Y",
+                  num.trees = num_trees, ...)
+  
   clusters <- as.numeric(predict(model, X, type = "response")$predictions)
  
-
-	res <- structure(list(labels=clusters,
-			      model=model,
-			      options=list(channels=channels, num.trees=num.trees,
-                         N = N, sub.sample = sub.sample,
-                         seed=seed)), class="cytorf")
+	res <- structure(list(labels = clusters, 
+			                  model = model),
+                   class="cytorf")
 
 	return(res)
-}
-
-#' Extract proximity matrix
-#'
-#' @param terminal_nodes  vector
-#' @export
-proximity_matrix <- function(terminal_nodes){
-  rcpp_proximity_matrix(terminal_nodes)
-}
-
-
-#' Extract affinity matrix from proximity matrix
-#' 
-#' @param S   square matrix
-#' @param N   nearest neighbours
-#'
-#' @export
-affinity_matrix <- function(S, N=10) {
-    n <- length(S[,1])
-    if (N >= n) {  # fully connected
-        A <- S
-    } else {
-        A <- matrix(rep(0,n^2), ncol=n)
-        for(i in 1:n) { 
-            # only connect to those points with larger similarity
-            best.similarities <- sort(S[i,], decreasing=TRUE)[1:N]
-            for (s in best.similarities) {
-                j <- which(S[i,] == s)
-                A[i,j] <- S[i,j]
-                A[j,i] <- S[i,j] 
-            }
-        }
-    }
-    A  
 }
