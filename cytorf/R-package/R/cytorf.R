@@ -21,11 +21,11 @@
 #' @export
 
 cytorf <- function(X, Y=NULL, channels=NULL,                 
-                   num_trees = 150,
-                   N=5,
+                   num_trees = 2000,
+                   N = ncol(X),
                    subsample = 0.25, 
-                   seed=1234,
-                   verbose=FALSE, ...){
+                   seed = 1234,
+                   verbose = FALSE, ...){
   
   if (!is.null(channels))
     X <- X[,channels]
@@ -49,8 +49,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
   set.seed(seed) 
   subsampling_index <- sample(1:nrow(X), subsample, replace = FALSE)
 
-  train <- data.frame(X[subsampling_index, ], check.names = FALSE)
-  train$Y <- Y[subsampling_index, ]
+  train <- data.frame(X[subsampling_index, ], check.names = FALSE) 
 
   # Generate a synthetic dataset
   n_obs <- nrow(train) 
@@ -63,7 +62,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
   # Generate affinity matrix
   affinity <- compute_affinity_matrix(train,
                                       X[subsampling_index, ],
-                                      num_trees, N, #...,
+                                      num_trees, N, ...,
                                       verbose = verbose, seed = seed)
  
   affinity <- exp(affinity) 
@@ -76,7 +75,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	groups <- as.numeric(membership(cl)) 
 
   # Extrapolate smaller model to full dataset
-  df <- data.frame(train[, 1:ncol(X)],
+  df <- data.frame(X[subsampling_index, ],
                    Y = as.factor(groups), check.names = FALSE)
    
   model <- ranger(data = df, dependent.variable.name = "Y",

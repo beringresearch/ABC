@@ -4,7 +4,7 @@
 \alias{cytorf}
 \title{Perform unsupervised clusering using random forest}
 \usage{
-cytorf(X, Y = NULL, channels = NULL, num_trees = 150, N = 5,
+cytorf(X, Y = NULL, channels = NULL, num_trees = 2000, N = ncol(X),
   subsample = 0.25, seed = 1234, verbose = FALSE, ...)
 }
 \arguments{
