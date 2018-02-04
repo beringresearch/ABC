@@ -62,10 +62,9 @@ cytorf <- function(X, Y=NULL, channels=NULL,
   # Generate affinity matrix
   affinity <- compute_affinity_matrix(train,
                                       X[subsampling_index, ],
-                                      num_trees, N, ...,
-                                      verbose = verbose, seed = seed)
- 
-  affinity <- exp(affinity) 
+                                      num_trees, N, #...,
+                                      verbose = verbose, seed = seed) 
+  affinity <- exp(affinity)-1 
   
 	# Louvain clustering
 	if (verbose) cat("Clustering objects...\n")	

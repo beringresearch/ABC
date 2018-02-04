@@ -1,6 +1,6 @@
 Package: cytorf
 Title: Unsupervised clustering using Random Forests 
-Version: 0.0.3.3
+Version: 0.0.3.4
 Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 Depends: R (>= 3.3.1)
