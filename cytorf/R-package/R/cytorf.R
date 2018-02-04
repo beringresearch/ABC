@@ -65,14 +65,14 @@ cytorf <- function(X, Y=NULL, channels=NULL,
                                       num_trees, N, #...,
                                       verbose = verbose, seed = seed) 
   affinity <- exp(affinity)-1 
-  
-	# Louvain clustering
-	if (verbose) cat("Clustering objects...\n")	
-	g <- graph_from_adjacency_matrix(affinity, mode="undirected",
+  # Louvain clustering
+	if (verbose) cat("Clustering objects...\n")
+  g <- graph_from_adjacency_matrix(affinity, mode="undirected",
                                    weighted=T, diag=F)
 	cl <- cluster_louvain(g)
-	groups <- as.numeric(membership(cl)) 
 
+
+	groups <- as.numeric(membership(cl)) 
   # Extrapolate smaller model to full dataset
   df <- data.frame(X[subsampling_index, ],
                    Y = as.factor(groups), check.names = FALSE)
