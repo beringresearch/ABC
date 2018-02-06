@@ -8,7 +8,7 @@ Imports:
 	Rcpp,
 	ranger,
 	igraph,
-	flowCore
+	RANN
 LinkingTo: Rcpp
 License: What license is it under?
 Encoding: UTF-8

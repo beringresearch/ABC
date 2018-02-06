@@ -5,6 +5,17 @@
 
 using namespace Rcpp;
 
+// rcpp_jaccard_coeff
+NumericMatrix rcpp_jaccard_coeff(NumericMatrix idx);
+RcppExport SEXP _cytorf_rcpp_jaccard_coeff(SEXP idxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type idx(idxSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_jaccard_coeff(idx));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpp_proximity_matrix
 NumericMatrix rcpp_proximity_matrix(NumericMatrix idx);
 RcppExport SEXP _cytorf_rcpp_proximity_matrix(SEXP idxSEXP) {
@@ -18,6 +29,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_cytorf_rcpp_jaccard_coeff", (DL_FUNC) &_cytorf_rcpp_jaccard_coeff, 1},
     {"_cytorf_rcpp_proximity_matrix", (DL_FUNC) &_cytorf_rcpp_proximity_matrix, 1},
     {NULL, NULL, 0}
 };

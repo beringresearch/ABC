@@ -8,22 +8,18 @@
 #' @param num_trees   number of trees
 #'
 #' @param N 	        number of neighbours for calculation of affinity matrix.
-#' @param subsample   double indicating a fraction of random observations to
-#'                    chose for calculation of proximity matrix. Range is 0-1.
-#'                    This parameter can be used to speed up model construction#'                    by sampling at random a small partition of the dataset.
 #' @param seed 		    random seed that controls clustering reproducibility
 #' @param verbose 	  boolean level of verbosity (default: FALSE)
 #' @param ...         additional parameters to be passed to ranger function
 #' @useDynLib cytorf
 #' @importFrom Rcpp sourceCpp
 #' @importFrom igraph graph_from_adjacency_matrix cluster_louvain membership
-#' @import ranger
+#' @import ranger RANN
 #' @export
 
-cytorf <- function(X, Y=NULL, channels=NULL,                 
+cytorf <- function(X, channels = NULL,                 
                    num_trees = 2000,
-                   N = ncol(X),
-                   subsample = 0.25, 
+                   delta = 0.1,
                    seed = 1234,
                    verbose = FALSE, ...){
   
@@ -36,20 +32,7 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 	if (is.null(colnames(X)))
     stop("X values must contain unique column names.")
   
-  # Subsampling processing and error handling 
-  if (subsample < 0)
-    stop("subsample should be a positive number.")
-  if (subsample <= 1) 
-    subsample <- floor(subsample * nrow(X))
-  if (subsample > nrow(X))
-    stop("Trying to subsample on more events than there are rows in X.")
-
-  
-	# Generate synthetic data for unsupervised prediction
-  set.seed(seed) 
-  subsampling_index <- sample(1:nrow(X), subsample, replace = FALSE)
-
-  train <- data.frame(X[subsampling_index, ], check.names = FALSE) 
+  train <- X 
 
   # Generate a synthetic dataset
   n_obs <- nrow(train) 
@@ -60,30 +43,33 @@ cytorf <- function(X, Y=NULL, channels=NULL,
 
   
   # Generate affinity matrix
-  affinity <- compute_affinity_matrix(train,
-                                      X[subsampling_index, ],
-                                      num_trees, N, #...,
-                                      verbose = verbose, seed = seed) 
-  affinity <- exp(affinity)-1 
+  terminal_nodes <- get_terminal_nodes(train, X, 
+                                       #...,
+                                       num_trees = num_trees,
+                                       verbose = verbose,
+                                       seed = seed) 
+ 
+  proximity_matrix <- get_proximity_matrix(terminal_nodes)
+  proximity_matrix <- proximity_matrix/num_trees
+
+  #affinity <- get_affinity_matrix_nn(proximity_matrix, k = k)
+
+  affinity <- exp(-((1-proximity_matrix)^2)/(2 * delta^2))
+
+
+  lv <- largeVis::largeVis(t(X))
+  affinity <- lv$wij
+
+
   # Louvain clustering
 	if (verbose) cat("Clustering objects...\n")
   g <- graph_from_adjacency_matrix(affinity, mode="undirected",
-                                   weighted=T, diag=F)
+                                   weighted = TRUE, diag = FALSE) 
 	cl <- cluster_louvain(g)
-
-
-	groups <- as.numeric(membership(cl)) 
-  # Extrapolate smaller model to full dataset
-  df <- data.frame(X[subsampling_index, ],
-                   Y = as.factor(groups), check.names = FALSE)
-   
-  model <- ranger(data = df, dependent.variable.name = "Y",
-                  num.trees = num_trees, ...)
-  
-  clusters <- as.numeric(predict(model, X, type = "response")$predictions)
+	clusters <- as.numeric(membership(cl))
  
-	res <- structure(list(labels = clusters, 
-			                  model = model),
+ 
+	res <- structure(list(labels = clusters), 
                    class="cytorf")
 
 	return(res)
