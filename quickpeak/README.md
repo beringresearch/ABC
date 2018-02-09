@@ -56,12 +56,12 @@ head(qp)
 ```
 
     ##   Sepal.Length       yhat
-    ## 1          5.1 0.02219626
-    ## 2          4.9 0.02219626
-    ## 3          4.7 0.02219626
-    ## 4          4.6 0.02219626
-    ## 5          5.0 0.02219626
-    ## 6          5.4 0.01933088
+    ## 1          5.1 0.01781170
+    ## 2          4.9 0.01781170
+    ## 3          4.7 0.01988781
+    ## 4          4.6 0.01988781
+    ## 5          5.0 0.01781170
+    ## 6          5.4 0.01413021
 
 The function returns odds such that higher values indicate greater affinity towards output of interest. We can now visualise the "decision vector" in our iris model.
 
@@ -71,11 +71,43 @@ plot(qp, pch=19, col=iris$Species)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-3-1.png)
 
-Integration with Shiny
-======================
+Visualising Random Forest trees
+===============================
 
-To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This functionality is triggered by running **qpeak** without specifying the **feature** argument.
+Visualise the first tree of a random forest model produced earlier.
 
-``` r{eval=false}
-qpeak(model, X, FUN=predict, type="prob")
+``` r
+show_tree(model, tree = 1)
 ```
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+    ## Warning in shortest_paths(g, from = x, to = which(leafnodes)): At
+    ## structural_properties.c:740 :Couldn't reach some vertices
+
+![](README_files/figure-markdown_github/unnamed-chunk-4-1.png)
