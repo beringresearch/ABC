@@ -1,10 +1,14 @@
 Package: quickpeak
 Title: Quick peak into a blackbox of any predictive algorithm. 
-Version: 0.0.1.0
+Version: 0.0.1.1
 Authors@R: person("Ignat", "Drozdov", email = "idrozdov@beringresearch.com", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 Depends: R (>= 3.3.1)
-Imports: ggplot2, shiny, shinythemes
+Imports:
+  ggplot2,
+  ranger,
+  ggraph,
+  igraph
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true

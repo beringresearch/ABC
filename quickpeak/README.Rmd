@@ -66,10 +66,10 @@ The function returns odds such that higher values indicate greater affinity towa
 plot(qp, pch=19, col=iris$Species)
 ```
 
-# Integration with Shiny
+# Visualising Random Forest trees
 
-To streamline exploration, **quickpeak** is also accessible through a shiny dashboard. This functionality is triggered by running __qpeak__ without specifying the __feature__ argument.
+Visualise the first tree of a random forest model produced earlier.
 
-```r{eval=FALSE}
-qpeak(model, X, FUN=predict, type="prob")
+```{r}
+show_tree(model, tree = 1)
 ```
